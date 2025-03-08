@@ -1,80 +1,79 @@
+import os
 import json
 import uuid
-import requests
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from .models import Conversation
-import os
+from dotenv import load_dotenv
+from django.views.decorators.csrf import csrf_exempt
+from huggingface_hub import InferenceClient
 
-# Hugging Face Inference API URL
-API_URL = "https://api-inference.huggingface.co/models/deepseek-ai/deepseek-llm-7b-chat"
+# Load environment variables from .env file
+load_dotenv()
 
-# Your Hugging Face API key (stored as an environment variable)
-API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+# Retrieve the Hugging Face API token from .env file
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
-# Define headers with the API key for authentication
-headers = {
-    "Authorization": f"Bearer {API_KEY}"
-}
+if not HUGGINGFACE_API_KEY:
+    raise ValueError("Hugging Face API key is missing in .env file")
+
+# Initialize the Hugging Face InferenceClient with API key
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=HUGGINGFACE_API_KEY
+)
+
+# Define the model you want to use
+MODEL = "meta-llama/Llama-2-7b-chat-hf"
 
 @csrf_exempt
 def chat(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body.decode('utf-8'))
-            user_message = data.get('message')
-            
-            if not user_message:
-                return JsonResponse({"error": "No message provided"}, status=400)
-            
-            # Prepare the payload
-            payload = {
-                "inputs": user_message
-            }
-            
-            # Send the request to the Hugging Face API
-            response = requests.post(API_URL, headers=headers, json=payload)
-            
-            if response.status_code != 200:
-                return JsonResponse({"error": "Failed to get a response from the model", "details": response.json()}, status=500)
-            
-            ai_response = response.json()[0]['generated_text']  # Extract AI response from the API response
-            
-            # Save conversation
-            conversation_record = Conversation.objects.create(
-                conversation_id=str(uuid.uuid4()),
-                prompt_message=user_message,
+            # Get the prompt message from the request body
+            try:
+                body = json.loads(request.body)
+                prompt_message = body.get("prompt_message", "")
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+            if not prompt_message:
+                return JsonResponse({"error": "No prompt message provided"}, status=400)
+
+            # Prepare the message for the Llama-2 model
+            messages = [
+                {
+                    "role": "user",
+                    "content": prompt_message
+                }
+            ]
+
+            # Query the Llama model using the InferenceClient
+            completion = client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                max_tokens=500,
+            )
+
+            # Extract the AI response
+            ai_response = completion.choices[0].message
+
+            # Create a unique conversation ID
+            conversation_id = str(uuid.uuid4())
+
+            # Save the conversation to the database
+            conversation = Conversation.objects.create(
+                conversation_id=conversation_id,
+                prompt_message=prompt_message,
                 ai_response=ai_response
             )
-            
+
+            # Return the AI response and conversation ID
             return JsonResponse({
-                "ai_response": ai_response,
-                "conversation_id": conversation_record.id
-            })
-        
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+                "conversation_id": conversation_id,
+                "ai_response": ai_response
+            }, status=200)
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    
-    return JsonResponse({"error": "Invalid request method"}, status=400)
-
-@csrf_exempt
-def conversation_history(request):
-    if request.method == "GET":
-        conversations = Conversation.objects.all().order_by('-created_at')
-        
-        conversation_list = [
-            {
-                "conversation_id": conv.conversation_id,
-                "prompt_message": conv.prompt_message,
-                "ai_response": conv.ai_response,
-                "created_at": conv.created_at,
-                "last_edited_at": conv.last_edited_at
-            }
-            for conv in conversations
-        ]
-        
-        return JsonResponse({"conversations": conversation_list})
-    
-    return JsonResponse({"error": "Invalid request method"}, status=400)
+    else:
+        return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
