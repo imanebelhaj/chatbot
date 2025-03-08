@@ -29,7 +29,6 @@ def chat(request):
 
             if not prompt_message:
                 return JsonResponse({"error": "No prompt message provided"}, status=400)
-
             
             payload = {
                 "inputs": prompt_message,
@@ -39,7 +38,6 @@ def chat(request):
             }
             print(payload['inputs'])
 
-           
             response = client2.chat.completions.create(
                 extra_headers={
                     "HTTP-Referer": "", 
@@ -79,3 +77,27 @@ def chat(request):
     else:
         return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
 
+# Get Chat History
+@csrf_exempt
+def get_chat_history(request):
+    if request.method == "POST":
+        try:
+            # Get all conversations from the database
+            conversations = Conversation.objects.all()
+
+            # Prepare chat history response
+            chat_history = []
+            for convo in conversations:
+                chat_history.append({
+                    "conversation_id": convo.conversation_id,
+                    "prompt_message": convo.prompt_message,
+                    "ai_response": convo.ai_response,
+                    "created_at": convo.created_at,
+                })
+
+            return JsonResponse({"chat_history": chat_history}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
