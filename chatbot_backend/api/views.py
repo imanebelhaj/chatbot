@@ -1,14 +1,21 @@
 import json
 import uuid
+import requests
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Conversation
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+import os
 
-# Load the DialoGPT model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
-model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+# Hugging Face Inference API URL
+API_URL = "https://api-inference.huggingface.co/models/deepseek-ai/deepseek-llm-7b-chat"
+
+# Your Hugging Face API key (stored as an environment variable)
+API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+
+# Define headers with the API key for authentication
+headers = {
+    "Authorization": f"Bearer {API_KEY}"
+}
 
 @csrf_exempt
 def chat(request):
@@ -20,16 +27,20 @@ def chat(request):
             if not user_message:
                 return JsonResponse({"error": "No message provided"}, status=400)
             
-            # Encode the user input
-            input_ids = tokenizer.encode(user_message + tokenizer.eos_token, return_tensors='pt')
+            # Prepare the payload
+            payload = {
+                "inputs": user_message
+            }
             
-            # Generate response
-            chat_history_ids = model.generate(input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id, no_repeat_ngram_size=2)
+            # Send the request to the Hugging Face API
+            response = requests.post(API_URL, headers=headers, json=payload)
             
-            # Decode the response
-            ai_response = tokenizer.decode(chat_history_ids[:, input_ids.shape[-1]:][0], skip_special_tokens=True)
+            if response.status_code != 200:
+                return JsonResponse({"error": "Failed to get a response from the model", "details": response.json()}, status=500)
             
-            # Save to database
+            ai_response = response.json()[0]['generated_text']  # Extract AI response from the API response
+            
+            # Save conversation
             conversation_record = Conversation.objects.create(
                 conversation_id=str(uuid.uuid4()),
                 prompt_message=user_message,
