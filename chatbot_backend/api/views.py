@@ -148,27 +148,29 @@ def login_view(request):
             data = json.loads(request.body)
             username = data.get("username")
             password = data.get("password")
-
             user = authenticate(request, username=username, password=password)
-
             if user is not None:
-                # Create JWT tokens
                 refresh = RefreshToken.for_user(user)
                 access_token = str(refresh.access_token)
                 refresh_token = str(refresh)
-
-                return JsonResponse({
+                response = JsonResponse({
                     "message": "Login successful",
                     "access_token": access_token,
-                    "refresh_token": refresh_token
+                    "refresh_token": refresh_token  # Optionally include this in JSON as well
                 }, status=200)
-
+                # Set the refresh token as an HTTP-only cookie
+                response.set_cookie(
+                    "refresh_token",
+                    refresh_token,
+                    httponly=True,
+                    secure=False,  # Use True in production with HTTPS
+                    samesite="Lax"
+                )
+                return response
             else:
                 return JsonResponse({"error": "Invalid credentials"}, status=401)
-
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
     return JsonResponse({"error": "Invalid request method. Use POST."}, status=400)
 
 
@@ -184,18 +186,13 @@ def logout_view(request):
 @csrf_exempt
 @api_view(['POST'])
 def refresh_token(request):
-    refresh_token = request.COOKIES.get('refresh_token')
+    data = json.loads(request.body)
+    refresh_token = data.get("refresh_token")
     if not refresh_token:
         return JsonResponse({"error": "No refresh token provided"}, status=401)
-
     try:
-        # Validate and refresh the token
         refresh = RefreshToken(refresh_token)
         new_access_token = str(refresh.access_token)
-
-        return JsonResponse({
-            "access_token": new_access_token,
-        }, status=200)
-
+        return JsonResponse({"access_token": new_access_token}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
