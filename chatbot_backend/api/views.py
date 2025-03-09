@@ -196,3 +196,41 @@ def refresh_token(request):
         return JsonResponse({"access_token": new_access_token}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_chat_history2(request):
+    if request.method == "POST":
+        try:
+            conversations = Conversation.objects.filter(user=request.user)
+
+            chat_history = []
+            for convo in conversations:
+                # Get all messages in the conversation
+                messages = []
+                for message in convo.messages.all():  # Using related_name='messages' in the Message model
+                    messages.append({
+                        "user_message": message.user_message,
+                        "ai_response": message.ai_response,
+                        "created_at": message.created_at,
+                    })
+
+                # Extract the first three words from the first message of the conversation
+                first_prompt = convo.messages.first().user_message if convo.messages.exists() else ""
+                first_prompt_title = ' '.join(first_prompt.split()[:4])
+
+                chat_history.append({
+                    "conversation_id": convo.conversation_id,
+                    "title": first_prompt_title,
+                    "messages": messages,
+                    "created_at": convo.created_at,
+                })
+
+            return JsonResponse({"chat_history": chat_history}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)

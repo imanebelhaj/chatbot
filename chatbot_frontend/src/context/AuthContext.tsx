@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (response?.access_token) {
       localStorage.setItem("access_token", response.access_token);
       setUser(username);
-      window.location.href = "/mychat";
+      window.location.href = "/conversation";
     //  router.push("/mychat"); // Ensure this only runs client-side
     }
   };

@@ -13,7 +13,9 @@ export default function RootLayout({ children }: Readonly<{children: React.React
     <html>
        <body>
      {/* <SessionProvider> */}
+     
         <div >{children}</div>
+  
      {/* </SessionProvider> */}
     </body>
     </html>
