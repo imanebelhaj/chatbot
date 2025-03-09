@@ -177,3 +177,25 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return JsonResponse({"message": "Logged out successfully"}, status=200)
+
+
+
+#refresh token (JWT-based)
+@csrf_exempt
+@api_view(['POST'])
+def refresh_token(request):
+    refresh_token = request.COOKIES.get('refresh_token')
+    if not refresh_token:
+        return JsonResponse({"error": "No refresh token provided"}, status=401)
+
+    try:
+        # Validate and refresh the token
+        refresh = RefreshToken(refresh_token)
+        new_access_token = str(refresh.access_token)
+
+        return JsonResponse({
+            "access_token": new_access_token,
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
