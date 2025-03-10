@@ -120,6 +120,65 @@ def get_chat_history(request, conversation_id):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
+
+
+#this is the view to get the chat history titles and id for 
+#the navbar but also the messages that i ws aiming to use but eneded 
+# making another function specifically for that
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_chat_history2(request):
+    if request.method == "POST":
+        try:
+            conversations = Conversation.objects.filter(user=request.user)
+
+            chat_history = []
+            for convo in conversations:
+                # Get all messages in the conversation
+                messages = []
+                for message in convo.messages.all():  # Using related_name='messages' in the Message model
+                    messages.append({
+                        "user_message": message.user_message,
+                        "ai_response": message.ai_response,
+                        "created_at": message.created_at,
+                    })
+
+                # Extract the first three words from the first message of the conversation
+                first_prompt = convo.messages.first().user_message if convo.messages.exists() else ""
+                first_prompt_title = ' '.join(first_prompt.split()[:4])
+
+                chat_history.append({
+                    "conversation_id": convo.conversation_id,
+                    "title": first_prompt_title,
+                    "messages": messages,
+                    "created_at": convo.created_at,
+                })
+
+            return JsonResponse({"chat_history": chat_history}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
+
+#delete conversation view
+@csrf_exempt
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_conversation(request, conversation_id):
+    """Delete a specific conversation belonging to the authenticated user."""
+    try:
+        conversation = Conversation.objects.filter(conversation_id=conversation_id, user=request.user).first()
+        if not conversation:
+            return JsonResponse({"error": "Conversation not found or unauthorized."}, status=404)
+
+        conversation.delete()
+        return JsonResponse({"message": "Conversation deleted successfully."}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
 # User registration view
 @csrf_exempt
 def register(request):
@@ -179,7 +238,7 @@ def login_view(request):
     return JsonResponse({"error": "Invalid request method. Use POST."}, status=400)
 
 
-# User logout view
+# User logout view (jwt-based)
 @csrf_exempt
 def logout_view(request):
     logout(request)
@@ -204,41 +263,33 @@ def refresh_token(request):
 
 
 
+# Get the authenticated user's profile
 @csrf_exempt
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_chat_history2(request):
-    if request.method == "POST":
-        try:
-            conversations = Conversation.objects.filter(user=request.user)
+def get_profile(request):
+    """Retrieve the authenticated user's profile."""
+    try:
+        user = request.user
+        return JsonResponse({
+            "username": user.username,
+            "email": user.email,
+            "date_joined": user.date_joined.isoformat()
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
-            chat_history = []
-            for convo in conversations:
-                # Get all messages in the conversation
-                messages = []
-                for message in convo.messages.all():  # Using related_name='messages' in the Message model
-                    messages.append({
-                        "user_message": message.user_message,
-                        "ai_response": message.ai_response,
-                        "created_at": message.created_at,
-                    })
 
-                # Extract the first three words from the first message of the conversation
-                first_prompt = convo.messages.first().user_message if convo.messages.exists() else ""
-                first_prompt_title = ' '.join(first_prompt.split()[:4])
-
-                chat_history.append({
-                    "conversation_id": convo.conversation_id,
-                    "title": first_prompt_title,
-                    "messages": messages,
-                    "created_at": convo.created_at,
-                })
-
-            return JsonResponse({"chat_history": chat_history}, status=200)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
-
+#delete the authenticated user's profile
+@csrf_exempt
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_profile(request):
+    """Delete the authenticated user's account and associated data."""
+    try:
+        user = request.user
+        user.delete()
+        return JsonResponse({"message": "User profile deleted successfully."}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import { AuthContext } from "@/context/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -21,6 +22,12 @@ export default function ConversationPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
+  const authContext = useContext(AuthContext);
+  if (!authContext) {
+    throw new Error("AuthContext must be used within an AuthProvider");
+  }
+  const { isSessionExpired, logout } = authContext;
+
   // Get conversation ID from URL if available
   const params = useParams();
   console.log("Params:", params);
@@ -81,7 +88,7 @@ export default function ConversationPage() {
         // Log for debugging
         console.log("Number of messages loaded:", formattedMessages.length);
       } else {
-        console.error("Error loading conversation:", data.error);
+        console.error("Error loading conversation:", data.error || "Unknown error occurred");
       }
     } catch (error) {
       console.error("Failed to load conversation history:", error);
@@ -160,13 +167,13 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-r from-indigo-200 to-blue-300 text-gray-900">
       {/* Sidebar */}
       <Sidebar />
       
       {/* Main content */}
       <div className="flex-1 flex flex-col w-full md:ml-72">
-        <Navbar />
+        <Navbar  />
         
         {/* Loading state */}
         {isLoadingHistory && (
@@ -187,8 +194,8 @@ export default function ConversationPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Start a conversation</h3>
-              <p className="text-gray-500">Type a message below to begin chatting with our AI assistant.</p>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent mb-2">Start a conversation</h3>
+              <p className="text-gray-700">Type a message below to begin chatting with our AI assistant.</p>
             </div>
           </div>
         )}
@@ -201,7 +208,7 @@ export default function ConversationPage() {
                 <div key={index} className="space-y-4">
                   {/* User message */}
                   <div className="flex justify-end">
-                    <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-none max-w-md">
+                    <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-none max-w-md">
                       <p>{msg.user}</p>
                     </div>
                   </div>
@@ -235,7 +242,7 @@ export default function ConversationPage() {
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Type a message..."
                 disabled={isLoading || isLoadingHistory}
               />
@@ -244,8 +251,8 @@ export default function ConversationPage() {
                 disabled={!prompt.trim() || isLoading || isLoadingHistory}
                 className={`p-2.5 rounded-full text-white focus:outline-none ${
                   !prompt.trim() || isLoading || isLoadingHistory
-                    ? "bg-blue-400 cursor-not-allowed" 
-                    : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
+                    ? "bg-indigo-400 cursor-not-allowed" 
+                    : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 transform hover:scale-105 transition-all"
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -256,6 +263,22 @@ export default function ConversationPage() {
           </div>
         </div>
       </div>
+
+      {/* Session expired popup */}
+      {isSessionExpired && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent mb-4">Session Expired</h2>
+            <p className="mb-4 text-gray-700">Please log in again.</p>
+            <button
+              onClick={logout}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all transform hover:scale-105"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

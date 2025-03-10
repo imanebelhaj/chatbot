@@ -1,6 +1,5 @@
 "use client";
 import { createContext, useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/router";
 import { loginUser, refreshToken, logoutUser } from "@/api/auth";
 
 interface AuthContextType {
@@ -8,6 +7,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshTokens: () => Promise<void>;
+  isSessionExpired: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -19,14 +19,14 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  //const router = useRouter();
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   // Ensure that the code is executed only on the client side
   useEffect(() => {
     setIsClient(true); // Indicate that we're on the client-side
   }, []);
 
-  // Check for token on mount, only if client-side
+  // Check for token and username on mount, only if client-side
   useEffect(() => {
     if (isClient) {
       const checkToken = async () => {
@@ -34,7 +34,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const response = await refreshToken();
           if (response?.access_token) {
             localStorage.setItem("access_token", response.access_token);
-            setUser(response.user);
+            const storedUsername = localStorage.getItem("username");
+            setUser(storedUsername);
           }
         } catch {
           setUser(null);
@@ -48,19 +49,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const response = await loginUser(username, password);
     if (response?.access_token) {
       localStorage.setItem("access_token", response.access_token);
+      localStorage.setItem("username", username);
       setUser(username);
-      window.location.href = "/convo";
-    //  router.push("/mychat"); // Ensure this only runs client-side
+      window.location.href = "/conversation/";
     }
   };
-
 
   const logout = async () => {
     await logoutUser(); // Call your API to log out
     setUser(null); // Reset user state
     localStorage.removeItem("access_token"); // Clear the token from localStorage
+    localStorage.removeItem("username"); // Clear the username from localStorage
     window.location.href = "/auth/login";
-    //router.push("/auth/login"); // Redirect to login page
   };
 
   const refreshTokens = async () => {
@@ -68,17 +68,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await refreshToken();
       if (response?.access_token) {
         localStorage.setItem("access_token", response.access_token);
-        setUser("user"); // Or store more user data
+        const storedUsername = localStorage.getItem("username");
+        setUser(storedUsername);
       }
     } catch (error) {
       console.error("Session expired or refresh failed.", error);
-      logout(); // Logout if refreshing fails
+      setIsSessionExpired(true); // Show session expired popup
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshTokens }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshTokens, isSessionExpired }}>
       {children}
+      {isSessionExpired && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-xl font-semibold mb-4">Session Expired</h2>
+            <p className="mb-4">Please log in again.</p>
+            <button
+              onClick={logout}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };
