@@ -22,7 +22,8 @@ export default function Sidebar() {
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed on mobile
+  const [isCollapsed, setIsCollapsed] = useState(false); // Default expanded on desktop
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile menu state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -107,6 +108,19 @@ export default function Sidebar() {
     fetchChatHistory();
   }, []);
 
+  // Load sidebar collapsed state from localStorage on initial load
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebar_collapsed');
+    if (savedState !== null) {
+      setIsCollapsed(savedState === 'true');
+    }
+  }, []);
+
+  // Save sidebar collapsed state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', isCollapsed.toString());
+  }, [isCollapsed]);
+
   // Format the creation date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -119,6 +133,8 @@ export default function Sidebar() {
   const handleConversationSelect = (id: string) => {
     localStorage.setItem('selected_conversation_id', id);
     router.push(`/conversation/${id}`);
+    // Close mobile menu after selection
+    setIsMobileMenuOpen(false);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
@@ -173,18 +189,45 @@ export default function Sidebar() {
     setConversationToDelete(null);
   };
 
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+    // Ensure mobile menu state is synced on larger screens
+    if (window.innerWidth >= 768) {
+      setIsMobileMenuOpen(!isCollapsed);
+    }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+    // Keep desktop state in sync when on mobile
+    if (window.innerWidth < 768) {
+      setIsCollapsed(!isMobileMenuOpen);
+    }
+  };
+
+  // In Sidebar.jsx, after setting the collapsed state:
+useEffect(() => {
+  localStorage.setItem('sidebar_collapsed', isCollapsed.toString());
+  
+  // Dispatch custom event for other components to listen to
+  const event = new CustomEvent('sidebarStateChanged', {
+    detail: { isCollapsed }
+  });
+  window.dispatchEvent(event);
+}, [isCollapsed]);
+
   return (
     <>
       {/* Mobile toggle button - only visible on small screens */}
       <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={toggleMobileMenu}
         className="fixed z-40 bottom-4 left-4 md:hidden p-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-          {isCollapsed ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          ) : (
+          {isMobileMenuOpen ? (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           )}
         </svg>
       </button>
@@ -213,10 +256,30 @@ export default function Sidebar() {
         </div>
       )}
     
+      {/* Sidebar Toggle Button - Visible on desktop */}
+      <button 
+        onClick={toggleSidebar}
+        className={`fixed top-4 left-4 z-30 hidden md:flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transition-all duration-300 ${
+          isCollapsed ? 'translate-x-0' : 'translate-x-64'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+          {isCollapsed ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
+          )}
+        </svg>
+      </button>
+    
       {/* Sidebar container */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-30 w-72 bg-white text-gray-900 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
-          isCollapsed ? "-translate-x-full" : "translate-x-0"
+        className={`fixed inset-y-0 left-0 z-20 w-72 bg-white text-gray-900 transform transition-all duration-300 ease-in-out ${
+          isCollapsed ? '-translate-x-full' : 'translate-x-0'
+        } ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        } ${
+          isCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'
         } flex flex-col h-screen`}
       >
         {/* Sidebar header */}
@@ -224,7 +287,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">AI Chat</h1>
             <button
-              onClick={() => setIsCollapsed(true)} 
+              onClick={toggleMobileMenu} 
               className="p-1 rounded-md hover:bg-gray-200 md:hidden"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
@@ -336,7 +399,7 @@ export default function Sidebar() {
           </div>
         </div>
         
-        {/* User section */}
+        {/* User section with toggle button */}
         <div className="p-4 border-t border-gray-200 mt-auto">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
@@ -348,10 +411,15 @@ export default function Sidebar() {
               </div>
               <div className="text-xs text-gray-500">Free Plan</div>
             </div>
-            <button className="ml-auto p-1.5 rounded-md hover:bg-gray-200">
+            
+            {/* Toggle sidebar button (desktop only) */}
+            <button 
+              onClick={toggleSidebar}
+              className="ml-auto p-1.5 rounded-md hover:bg-gray-200 hidden md:block"
+              title="Toggle sidebar"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
               </svg>
             </button>
           </div>
@@ -360,10 +428,10 @@ export default function Sidebar() {
       
       {/* Backdrop for mobile - appears when sidebar is open */}
       <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden transition-opacity duration-300 ${
-          isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        className={`fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={() => setIsCollapsed(true)}
+        onClick={toggleMobileMenu}
       />
     </>
   );

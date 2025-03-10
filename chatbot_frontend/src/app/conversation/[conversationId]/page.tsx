@@ -20,6 +20,7 @@ export default function ConversationPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
   const authContext = useContext(AuthContext);
@@ -30,10 +31,11 @@ export default function ConversationPage() {
 
   // Get conversation ID from URL if available
   const params = useParams();
-  console.log("Params:", params);
-
+  
   // Handle the optional route parameter
-  const urlConversationId: string | undefined = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const urlConversationId: string | undefined = Array.isArray(params?.id) 
+    ? params.id[0] 
+    : params?.id;
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -42,15 +44,42 @@ export default function ConversationPage() {
 
   // Load conversation when URL param changes or from local storage
   useEffect(() => {
-    console.log("useEffect - urlConversationId:", urlConversationId);
     const storedConversationId = localStorage.getItem('selected_conversation_id');
     const finalConversationId = urlConversationId || storedConversationId;
 
     if (finalConversationId) {
-      setConversationId(finalConversationId); // Now safe to pass
+      setConversationId(finalConversationId);
       loadConversationHistory(finalConversationId);
     }
   }, [urlConversationId]);
+
+  // Check sidebar state from localStorage and listen for changes
+  useEffect(() => {
+    const checkSidebarState = () => {
+      const savedState = localStorage.getItem('sidebar_collapsed');
+      setIsSidebarCollapsed(savedState === 'true');
+    };
+
+    // Initial check
+    checkSidebarState();
+
+    // Listen for changes to sidebar state
+    const handleSidebarStateChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.isCollapsed !== undefined) {
+        setIsSidebarCollapsed(customEvent.detail.isCollapsed);
+      } else {
+        checkSidebarState();
+      }
+    };
+
+    window.addEventListener('sidebarStateChanged', handleSidebarStateChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('sidebarStateChanged', handleSidebarStateChange);
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,7 +88,6 @@ export default function ConversationPage() {
   // Function to load conversation history
   async function loadConversationHistory(id: string) {
     setIsLoadingHistory(true);
-    console.log("Loading conversation history for ID:", id);
     try {
       const response = await fetch(`${API_URL}/chat_history/${id}/`, {
         method: "GET",
@@ -70,7 +98,6 @@ export default function ConversationPage() {
       });
 
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (response.ok) {
         // Clear existing messages first
@@ -84,9 +111,6 @@ export default function ConversationPage() {
         
         // Set the messages
         setMessages(formattedMessages);
-        
-        // Log for debugging
-        console.log("Number of messages loaded:", formattedMessages.length);
       } else {
         console.error("Error loading conversation:", data.error || "Unknown error occurred");
       }
@@ -137,6 +161,8 @@ export default function ConversationPage() {
         // Set conversation ID if it's a new conversation
         if (!conversationId && data.conversation_id) {
           setConversationId(data.conversation_id);
+          // Also store in localStorage for persistence
+          localStorage.setItem('selected_conversation_id', data.conversation_id);
         }
       } else {
         // Handle error by updating the last message
@@ -171,9 +197,13 @@ export default function ConversationPage() {
       {/* Sidebar */}
       <Sidebar />
       
-      {/* Main content */}
-      <div className="flex-1 flex flex-col w-full md:ml-72">
-        <Navbar  />
+      {/* Main content - adjust width and margin based on sidebar state */}
+      <div 
+        className={`flex-1 flex flex-col w-full transition-all duration-300 ${
+          isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'
+        }`}
+      >
+        <Navbar />
         
         {/* Loading state */}
         {isLoadingHistory && (
@@ -237,7 +267,7 @@ export default function ConversationPage() {
         {/* Message input */}
         <div className="border-t bg-white p-4 md:px-6">
           <div className="max-w-4xl mx-auto">
-            <form onSubmit={sendMessage} className="flex items-center space-x-2">
+            <form onSubmit={(e) => sendMessage(e)} className="flex items-center space-x-2">
               <input
                 type="text"
                 value={prompt}
@@ -263,22 +293,6 @@ export default function ConversationPage() {
           </div>
         </div>
       </div>
-
-      {/* Session expired popup */}
-      {isSessionExpired && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent mb-4">Session Expired</h2>
-            <p className="mb-4 text-gray-700">Please log in again.</p>
-            <button
-              onClick={logout}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all transform hover:scale-105"
-            >
-              Log Out
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

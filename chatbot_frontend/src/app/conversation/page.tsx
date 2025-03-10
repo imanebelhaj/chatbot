@@ -13,6 +13,7 @@ export default function ConversationPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Get conversation ID from URL if available
@@ -31,7 +32,35 @@ export default function ConversationPage() {
       setConversationId(urlConversationId);
       loadConversationHistory(urlConversationId);
     }
-  }, [urlConversationId]);
+  }, [urlConversationId, conversationId]);
+
+  // Check sidebar state from localStorage
+  useEffect(() => {
+    const checkSidebarState = () => {
+      const savedState = localStorage.getItem('sidebar_collapsed');
+      setIsSidebarCollapsed(savedState === 'true');
+    };
+
+    // Initial check
+    checkSidebarState();
+
+    // Listen for changes to sidebar state
+    const handleSidebarStateChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.isCollapsed !== undefined) {
+        setIsSidebarCollapsed(customEvent.detail.isCollapsed);
+      } else {
+        checkSidebarState();
+      }
+    };
+
+    window.addEventListener('sidebarStateChanged', handleSidebarStateChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('sidebarStateChanged', handleSidebarStateChange);
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -144,8 +173,10 @@ export default function ConversationPage() {
       {/* Sidebar */}
       <Sidebar />
       
-      {/* Main content */}
-      <div className="flex-1 flex flex-col w-full md:ml-72">
+      {/* Main content - adjust margin based on sidebar state */}
+      <div className={`flex-1 flex flex-col w-full transition-all duration-300 ${
+        isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'
+      }`}>
         <Navbar />
         
         {/* Loading state */}
