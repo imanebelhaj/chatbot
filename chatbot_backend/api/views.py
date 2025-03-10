@@ -79,42 +79,66 @@ def chat(request):
 
 
 
+# #get history chat of the selected conversation from the user by conversation id 
+# @csrf_exempt
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_chat_history(request, conversation_id):
+#     if request.method == "GET":
+#         try:
+#             # Retrieve the conversation by ID for the authenticated user
+#             conversation = Conversation.objects.filter(conversation_id=conversation_id, user=request.user).first()
+#             if not conversation:
+#                 return JsonResponse({"error": "Conversation not found or unauthorized."}, status=404)
+            
+#             # Retrieve the messages in this conversation
+#             messages = []
+#             for message in conversation.messages.all():
+#                 messages.append({
+#                     "user_message": message.user_message,
+#                     "ai_response": message.ai_response,
+#                     "created_at": message.created_at,
+#                 })
+            
+#             return JsonResponse({"conversation_id": conversation.conversation_id, "messages": messages}, status=200)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_chat_history(request):
-    if request.method == "POST":
+def get_chat_history(request, conversation_id):
+    if request.method == "GET":
         try:
-            conversations = Conversation.objects.filter(user=request.user)
-
-            chat_history = []
-            for convo in conversations:
-                # Get all messages in the conversation
-                messages = []
-                for message in convo.messages.all():  # Using related_name='messages' in the Message model
-                    messages.append({
-                        "user_message": message.user_message,
-                        "ai_response": message.ai_response,
-                        "created_at": message.created_at,
-                    })
-
-                chat_history.append({
-                    "conversation_id": convo.conversation_id,
-                    "messages": messages,
-                    "created_at": convo.created_at,
+            # Retrieve the conversation by ID for the authenticated user
+            conversation = Conversation.objects.filter(conversation_id=conversation_id, user=request.user).first()
+            if not conversation:
+                return JsonResponse({"error": "Conversation not found or unauthorized."}, status=404)
+            
+            # Retrieve the messages in this conversation
+            # Ensure they're ordered chronologically
+            messages = []
+            for message in conversation.messages.all().order_by('created_at'):
+                messages.append({
+                    "user_message": message.user_message,
+                    "ai_response": message.ai_response,
+                    "created_at": message.created_at.isoformat(),  # Format as ISO string
                 })
-
-            return JsonResponse({"chat_history": chat_history}, status=200)
+            
+            # Get the first message to use as a title
+            first_message = conversation.messages.first()
+            title = ' '.join(first_message.user_message.split()[:4]) if first_message else "Untitled Conversation"
+            
+            return JsonResponse({
+                "conversation_id": conversation.conversation_id,
+                "title": title,
+                "messages": messages,
+                "created_at": conversation.created_at.isoformat()
+            }, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
-
-
-
-
 # User registration view
 @csrf_exempt
 def register(request):

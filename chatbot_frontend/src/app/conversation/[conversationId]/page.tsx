@@ -7,18 +7,24 @@ import Navbar from "@/components/Navbar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
+// Define proper types for our messages
+interface Message {
+  user: string;
+  ai: string;
+}
+
 export default function ConversationPage() {
-  const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<{ user: string; ai: string }[]>([]);
+  const [prompt, setPrompt] = useState<string>("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
   // Get conversation ID from URL if available
   const params = useParams();
   // Handle the optional route parameter
-  const urlConversationId = params?.id?.[0] || null;
+  const urlConversationId = params?.id?.[0] ; //|| null
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -31,47 +37,54 @@ export default function ConversationPage() {
       setConversationId(urlConversationId);
       loadConversationHistory(urlConversationId);
     }
-  }, [urlConversationId]);
+  }, [urlConversationId, conversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // Function to load conversation history
-  async function loadConversationHistory(id: string) {
-    setIsLoadingHistory(true);
-    try {
-      const response = await fetch(`${API_URL}/history/${id}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-      });
+async function loadConversationHistory(id: string) {
+  setIsLoadingHistory(true);
+  try {
+    const response = await fetch(`${API_URL}/history/${id}/`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok && data.messages) {
-        // Transform the message format to match our component's structure
-        const formattedMessages = data.messages.map((msg: any) => ({
-          user: msg.user_message,
-          ai: msg.ai_response
-        }));
-        
-        setMessages(formattedMessages);
-      } else {
-        console.error("Error loading conversation:", data.error);
-        // Optionally show an error message to the user
-      }
-    } catch (error) {
-      console.error("Failed to load conversation history:", error);
-    } finally {
-      setIsLoadingHistory(false);
+    if (response.ok && data.messages) {
+      // Clear existing messages first
+      setMessages([]);
+      
+      // Transform the message format to match our component's structure
+      const formattedMessages = data.messages.map((msg: { user_message: string; ai_response: string }) => ({
+        user: msg.user_message,
+        ai: msg.ai_response
+      }));
+      
+      // Set the messages
+      setMessages(formattedMessages);
+      
+      // Log for debugging
+      console.log("Loaded conversation:", data.title);
+      console.log("Number of messages loaded:", formattedMessages.length);
+    } else {
+      console.error("Error loading conversation:", data.error);
     }
+  } catch (error) {
+    console.error("Failed to load conversation history:", error);
+  } finally {
+    setIsLoadingHistory(false);
   }
+}
 
   // Function to send a message to the backend
-  async function sendMessage(e?: React.FormEvent) {
+  async function sendMessage(e: React.FormEvent | null) {
     if (e) e.preventDefault();
     if (!prompt.trim() || isLoading) return;
 
@@ -108,7 +121,7 @@ export default function ConversationPage() {
         });
         
         // Set conversation ID if it's a new conversation
-        if (!conversationId) {
+        if (!conversationId && data.conversation_id) {
           setConversationId(data.conversation_id);
         }
       } else {

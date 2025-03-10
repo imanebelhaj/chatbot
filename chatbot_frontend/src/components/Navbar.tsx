@@ -22,13 +22,13 @@ export default function Navbar() {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white"
         >
-          <Image
+          {/* <Image
             src="/profile.png"
             alt="Profile"
             width={32}
             height={32}
             className="rounded-full"
-          />
+          /> */}
           <ChevronDown size={16} />
         </button>
 
