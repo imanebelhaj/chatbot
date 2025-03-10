@@ -412,16 +412,7 @@ useEffect(() => {
               <div className="text-xs text-gray-500">Free Plan</div>
             </div>
             
-            {/* Toggle sidebar button (desktop only) */}
-            <button 
-              onClick={toggleSidebar}
-              className="ml-auto p-1.5 rounded-md hover:bg-gray-200 hidden md:block"
-              title="Toggle sidebar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
-              </svg>
-            </button>
+            
           </div>
         </div>
       </aside>

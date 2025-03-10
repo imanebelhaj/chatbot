@@ -9,6 +9,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,6 +24,15 @@ SECRET_KEY = 'django-insecure-+88_!xxw5_9cv(&ssz5)_68wy#&k-^ws6ttx-c6rqcow-mp&o8
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+
+# File upload settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Maximum file upload size (10MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 
 # Application definition
