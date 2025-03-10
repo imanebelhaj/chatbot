@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { ChevronDown, User, LogOut } from "lucide-react";
-import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <nav className="flex items-center justify-between bg-gray-900 text-gray-100 shadow-md px-6 py-3">
       {/* Left - Logo */}
       <div className="flex items-center gap-2">
         {/* <Image src="/logo.svg" alt="Logo" width={32} height={32} /> */}
-        <h1 className="text-xl font-semibold">Chatbot</h1>
+        <h1 className="text-xl font-semibold">LOGO</h1>
       </div>
 
       {/* Right - Profile Dropdown */}
@@ -22,13 +23,6 @@ export default function Navbar() {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white"
         >
-          {/* <Image
-            src="/profile.png"
-            alt="Profile"
-            width={32}
-            height={32}
-            className="rounded-full"
-          /> */}
           <ChevronDown size={16} />
         </button>
 
@@ -40,7 +34,7 @@ export default function Navbar() {
               View Profile
             </button>
             <button
-              onClick={() => signOut()}
+              onClick={logout}
               className="flex items-center w-full px-4 py-2 text-red-500 hover:bg-gray-700"
             >
               <LogOut size={16} className="mr-2" />

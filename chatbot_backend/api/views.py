@@ -20,6 +20,8 @@ client2 = OpenAI(
   api_key=os.getenv("KEY"),
 )
 
+# print(Message.objects.all())
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -68,6 +70,8 @@ def chat(request):
                 user_message=prompt_message,
                 ai_response=ai_response
             )
+            print(f"Saving message: {prompt_message}, AI response: {ai_response}")
+
 
             return JsonResponse({"conversation_id": conversation_id, "ai_response": ai_response}, status=200)
 
@@ -78,58 +82,34 @@ def chat(request):
 
 
 
-
-# #get history chat of the selected conversation from the user by conversation id 
-# @csrf_exempt
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def get_chat_history(request, conversation_id):
-#     if request.method == "GET":
-#         try:
-#             # Retrieve the conversation by ID for the authenticated user
-#             conversation = Conversation.objects.filter(conversation_id=conversation_id, user=request.user).first()
-#             if not conversation:
-#                 return JsonResponse({"error": "Conversation not found or unauthorized."}, status=404)
-            
-#             # Retrieve the messages in this conversation
-#             messages = []
-#             for message in conversation.messages.all():
-#                 messages.append({
-#                     "user_message": message.user_message,
-#                     "ai_response": message.ai_response,
-#                     "created_at": message.created_at,
-#                 })
-            
-#             return JsonResponse({"conversation_id": conversation.conversation_id, "messages": messages}, status=200)
-
-#         except Exception as e:
-#             return JsonResponse({"error": str(e)}, status=500)
-
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_chat_history(request, conversation_id):
     if request.method == "GET":
         try:
-            # Retrieve the conversation by ID for the authenticated user
-            conversation = Conversation.objects.filter(conversation_id=conversation_id, user=request.user).first()
+            # Retrieve the conversation with related messages for the authenticated user
+            conversation = Conversation.objects.prefetch_related('messages').filter(
+                conversation_id=conversation_id, user=request.user
+            ).first()
+
             if not conversation:
                 return JsonResponse({"error": "Conversation not found or unauthorized."}, status=404)
-            
-            # Retrieve the messages in this conversation
-            # Ensure they're ordered chronologically
-            messages = []
-            for message in conversation.messages.all().order_by('created_at'):
-                messages.append({
-                    "user_message": message.user_message,
-                    "ai_response": message.ai_response,
-                    "created_at": message.created_at.isoformat(),  # Format as ISO string
-                })
-            
-            # Get the first message to use as a title
+
+            # Retrieve all messages ordered chronologically
+            messages = [
+                {
+                    "user_message": msg.user_message,
+                    "ai_response": msg.ai_response,
+                    "created_at": msg.created_at.isoformat(),
+                }
+                for msg in conversation.messages.all().order_by('created_at')
+            ]
+
+            # Get the first message to use as a title (if available)
             first_message = conversation.messages.first()
             title = ' '.join(first_message.user_message.split()[:4]) if first_message else "Untitled Conversation"
-            
+
             return JsonResponse({
                 "conversation_id": conversation.conversation_id,
                 "title": title,
@@ -139,6 +119,7 @@ def get_chat_history(request, conversation_id):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
 # User registration view
 @csrf_exempt
 def register(request):
@@ -222,6 +203,7 @@ def refresh_token(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -258,3 +240,5 @@ def get_chat_history2(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method. Please use POST."}, status=400)
+
+

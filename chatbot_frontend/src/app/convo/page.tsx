@@ -23,65 +23,72 @@ export default function ConversationPage() {
   
   // Get conversation ID from URL if available
   const params = useParams();
+  console.log("Params:", params);
+
   // Handle the optional route parameter
-  const urlConversationId = params?.id?.[0] ; //|| null
+  const urlConversationId: string | undefined = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Load conversation when URL param changes
+  // Load conversation when URL param changes or from local storage
   useEffect(() => {
-    if (urlConversationId && urlConversationId !== conversationId) {
-      setConversationId(urlConversationId);
-      loadConversationHistory(urlConversationId);
+    console.log("useEffect - urlConversationId:", urlConversationId);
+    const storedConversationId = localStorage.getItem('selected_conversation_id');
+    const finalConversationId = urlConversationId || storedConversationId;
+
+    if (finalConversationId) {
+      setConversationId(finalConversationId); // Now safe to pass
+      loadConversationHistory(finalConversationId);
     }
-  }, [urlConversationId, conversationId]);
+  }, [urlConversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // Function to load conversation history
-async function loadConversationHistory(id: string) {
-  setIsLoadingHistory(true);
-  try {
-    const response = await fetch(`${API_URL}/history/${id}/`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        "Content-Type": "application/json",
-      },
-    });
+  async function loadConversationHistory(id: string) {
+    setIsLoadingHistory(true);
+    console.log("Loading conversation history for ID:", id);
+    try {
+      const response = await fetch(`${API_URL}/chat_history/${id}/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
+      console.log("Response data:", data);
 
-    if (response.ok && data.messages) {
-      // Clear existing messages first
-      setMessages([]);
-      
-      // Transform the message format to match our component's structure
-      const formattedMessages = data.messages.map((msg: { user_message: string; ai_response: string }) => ({
-        user: msg.user_message,
-        ai: msg.ai_response
-      }));
-      
-      // Set the messages
-      setMessages(formattedMessages);
-      
-      // Log for debugging
-      console.log("Loaded conversation:", data.title);
-      console.log("Number of messages loaded:", formattedMessages.length);
-    } else {
-      console.error("Error loading conversation:", data.error);
+      if (response.ok) {
+        // Clear existing messages first
+        setMessages([]);
+        
+        // Transform the message format to match our component's structure
+        const formattedMessages = (data.messages ?? []).map((msg: { user_message: string; ai_response: string }) => ({
+          user: msg.user_message,
+          ai: msg.ai_response,
+        }));
+        
+        // Set the messages
+        setMessages(formattedMessages);
+        
+        // Log for debugging
+        console.log("Number of messages loaded:", formattedMessages.length);
+      } else {
+        console.error("Error loading conversation:", data.error);
+      }
+    } catch (error) {
+      console.error("Failed to load conversation history:", error);
+    } finally {
+      setIsLoadingHistory(false);
     }
-  } catch (error) {
-    console.error("Failed to load conversation history:", error);
-  } finally {
-    setIsLoadingHistory(false);
   }
-}
 
   // Function to send a message to the backend
   async function sendMessage(e: React.FormEvent | null) {

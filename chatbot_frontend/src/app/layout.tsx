@@ -11,13 +11,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode;}>) {
   return (
     <html>
-       <body>
-     {/* <SessionProvider> */}
-     
-        <div >{children}</div>
-  
-     {/* </SessionProvider> */}
+    <body>
+        {children}
     </body>
     </html>
+    
   );
 }

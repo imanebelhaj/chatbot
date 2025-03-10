@@ -1,3 +1,4 @@
+"use client";
 import { createContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 import { loginUser, refreshToken, logoutUser } from "@/api/auth";
@@ -48,17 +49,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (response?.access_token) {
       localStorage.setItem("access_token", response.access_token);
       setUser(username);
-      window.location.href = "/conversation";
+      window.location.href = "/convo";
     //  router.push("/mychat"); // Ensure this only runs client-side
     }
   };
 
-  const logout = () => {
-    logoutUser();
-    setUser(null);
-    localStorage.removeItem("access_token");
-    window.location.href = "/login"; 
-   // router.push("/login"); // Ensure this only runs client-side
+
+  const logout = async () => {
+    await logoutUser(); // Call your API to log out
+    setUser(null); // Reset user state
+    localStorage.removeItem("access_token"); // Clear the token from localStorage
+    window.location.href = "/auth/login";
+    //router.push("/auth/login"); // Redirect to login page
   };
 
   const refreshTokens = async () => {

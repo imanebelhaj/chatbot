@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -17,6 +17,7 @@ export default function Sidebar() {
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed on mobile
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch chat history from your backend API
@@ -67,6 +68,11 @@ export default function Sidebar() {
     });
   };
 
+  const handleConversationSelect = (id: string) => {
+    localStorage.setItem('selected_conversation_id', id);
+    router.push(`/conversation/${id}`);
+  };
+
   return (
     <>
       {/* Mobile toggle button - only visible on small screens */}
@@ -103,7 +109,7 @@ export default function Sidebar() {
             </button>
           </div>
           
-          <Link href="/conversation/" passHref>
+          <Link href="/convo/" passHref>
             <button className="w-full mt-4 py-2.5 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors flex items-center justify-center space-x-2">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -164,33 +170,33 @@ export default function Sidebar() {
                 {chatHistory.map((conversation) => {
                   const isActive = pathname === `/conversation/${conversation.conversation_id}`;
                   
+                  
                   return (
                     <li key={conversation.conversation_id}>
-                      <Link href={`/conversation/${conversation.conversation_id}`} passHref>
-                        <div 
-                          className={`flex items-center p-2.5 rounded-md transition-colors ${
-                            isActive 
-                              ? "bg-gray-700" 
-                              : "hover:bg-gray-800"
-                          }`}
-                        >
-                          <div className="mr-3 text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between">
-                              <h3 className="text-sm font-medium truncate">
-                                {conversation.title || "Untitled Conversation"}
-                              </h3>
-                              <span className="text-xs text-gray-500 ml-1 flex-shrink-0">
-                                {formatDate(conversation.created_at)}
-                              </span>
-                            </div>
+                      <div 
+                        onClick={() => handleConversationSelect(conversation.conversation_id)}
+                        className={`flex items-center p-2.5 rounded-md transition-colors cursor-pointer ${
+                          isActive 
+                            ? "bg-gray-700" 
+                            : "hover:bg-gray-800"
+                        }`}
+                      >
+                        <div className="mr-3 text-gray-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between">
+                            <h3 className="text-sm font-medium truncate">
+                              {conversation.title || "Untitled Conversation"}
+                            </h3>
+                            <span className="text-xs text-gray-500 ml-1 flex-shrink-0">
+                              {formatDate(conversation.created_at)}
+                            </span>
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     </li>
                   );
                 })}
