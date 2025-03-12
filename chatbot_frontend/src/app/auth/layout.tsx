@@ -4,12 +4,10 @@ import { AuthProvider } from "@/context/AuthContext";
 
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
-    <html>
-      <body>
+    <div>
         <AuthProvider>
               {children}
         </AuthProvider>
-      </body>
-    </html>
+    </div>
   );
 }

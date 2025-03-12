@@ -13,6 +13,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 import mimetypes
+from .decorators import validate_token
+
 
 load_dotenv()
 
@@ -29,6 +31,7 @@ client2 = OpenAI(
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def chat(request):
     parser_classes = (MultiPartParser, FormParser)
     
@@ -144,6 +147,7 @@ def chat(request):
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def get_chat_history2(request):
     if request.method == "POST":
         try:
@@ -182,6 +186,7 @@ def get_chat_history2(request):
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def get_chat_history(request, conversation_id):
     if request.method == "GET":
         try:
@@ -235,6 +240,7 @@ def get_chat_history(request, conversation_id):
 @csrf_exempt
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def delete_conversation(request, conversation_id):
     """Delete a specific conversation belonging to the authenticated user."""
     try:
@@ -286,6 +292,8 @@ def login_view(request):
                 refresh = RefreshToken.for_user(user)
                 access_token = str(refresh.access_token)
                 refresh_token = str(refresh)
+                # print(f"generated access token: {access_token}")
+                # print(f"generated refresh token: {refresh_token}")
                 response = JsonResponse({
                     "message": "Login successful",
                     "access_token": access_token,
@@ -316,18 +324,20 @@ def logout_view(request):
 
 
 #refresh token (JWT-based)
-@csrf_exempt
 @api_view(['POST'])
 def refresh_token(request):
     data = json.loads(request.body)
     refresh_token = data.get("refresh_token")
     if not refresh_token:
+        print("No refresh token provided")
         return JsonResponse({"error": "No refresh token provided"}, status=401)
     try:
+        print(f"Received refresh token: {refresh_token}")
         refresh = RefreshToken(refresh_token)
         new_access_token = str(refresh.access_token)
         return JsonResponse({"access_token": new_access_token}, status=200)
     except Exception as e:
+        print(f"Error refreshing token: {e}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -336,6 +346,7 @@ def refresh_token(request):
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def get_profile(request):
     """Retrieve the authenticated user's profile."""
     try:
@@ -353,6 +364,7 @@ def get_profile(request):
 @csrf_exempt
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def delete_profile(request):
     """Delete the authenticated user's account and associated data."""
     try:
@@ -366,11 +378,17 @@ def delete_profile(request):
 
 
 
+
+
+
+
+
 #chat function before adding file support
 #its unused now but keeping it for reference
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def chat2(request):
     if request.method == "POST":
         if not request.user.is_authenticated:
@@ -432,6 +450,7 @@ def chat2(request):
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@validate_token
 def get_chat_history(request, conversation_id):
     if request.method == "GET":
         try:

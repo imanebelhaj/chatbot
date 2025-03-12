@@ -1,16 +1,30 @@
 "use client";
-import { createContext, useState, useEffect, ReactNode } from "react";
+import { useContext, createContext, useState, useEffect, ReactNode } from "react";
 import { loginUser, refreshToken, logoutUser } from "@/api/auth";
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshTokens: () => Promise<void>;
-  isSessionExpired: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
+// Custom hook for requiring authentication
+export const useRequireAuth = () => {
+  const router = useRouter();
+  const auth = useContext(AuthContext);
+  
+  useEffect(() => {
+    if (!auth?.user) {
+      router.push('/auth/login');
+    }
+  }, [auth, router]);
+  
+  return auth;
+};
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -19,7 +33,8 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
 
   // Ensure that the code is executed only on the client side
   useEffect(() => {
@@ -29,71 +44,100 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Check for token and username on mount, only if client-side
   useEffect(() => {
     if (isClient) {
-      const checkToken = async () => {
-        try {
-          const response = await refreshToken();
-          if (response?.access_token) {
-            localStorage.setItem("access_token", response.access_token);
-            const storedUsername = localStorage.getItem("username");
-            setUser(storedUsername);
-          }
-        } catch {
-          setUser(null);
-        }
-      };
-      checkToken();
+      const storedUsername = localStorage.getItem("username");
+      const accessToken = localStorage.getItem("access_token");
+      
+      // Set user state based on localStorage
+      if (storedUsername && accessToken) {
+        setUser(storedUsername);
+      } else {
+        setUser(null);
+      }
+      
     }
   }, [isClient]);
 
   const login = async (username: string, password: string) => {
-    const response = await loginUser(username, password);
-    if (response?.access_token) {
-      localStorage.setItem("access_token", response.access_token);
-      localStorage.setItem("username", username);
-      setUser(username);
-      window.location.href = "/conversation/";
+    try {
+      const response = await loginUser(username, password);
+      if (response?.access_token && response?.refresh_token) {
+        localStorage.setItem("access_token", response.access_token);
+        localStorage.setItem("refresh_token", response.refresh_token);
+        console.log(`Using refresh token: ${response.refresh_token}`);
+        console.log(`Using refresh token: ${localStorage.refresh_token}`);
+        localStorage.setItem("username", username);
+        setUser(username);
+        router.push("/conversation/");
+        return;
+      }
+      throw new Error("Login failed");
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
   };
 
   const logout = async () => {
-    await logoutUser(); // Call your API to log out
-    setUser(null); // Reset user state
-    localStorage.removeItem("access_token"); // Clear the token from localStorage
-    localStorage.removeItem("username"); // Clear the username from localStorage
-    window.location.href = "/auth/login";
+    try {
+      await logoutUser(); // Call your API to log out
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Always clear local state, even if API call fails
+      setUser(null);
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("username");
+      router.push("/auth/login");
+    }
   };
 
   const refreshTokens = async () => {
+    // Prevent multiple simultaneous refresh requests
+    if (isRefreshing) {
+      return new Promise<void>((resolve, reject) => {
+        // Check again in 100ms if still refreshing
+        const checkRefreshState = setInterval(() => {
+          if (!isRefreshing) {
+            clearInterval(checkRefreshState);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+  
+    setIsRefreshing(true);
+    
     try {
-      const response = await refreshToken();
+      const refreshTokenValue = localStorage.getItem("refresh_token");
+      if (!refreshTokenValue) {
+        throw new Error("No refresh token available");
+      }
+      console.log(`Using refresh token: ${refreshTokenValue}`);
+  
+      const response = await refreshToken(refreshTokenValue); // Pass the refresh token to the API
       if (response?.access_token) {
         localStorage.setItem("access_token", response.access_token);
         const storedUsername = localStorage.getItem("username");
         setUser(storedUsername);
+      } else {
+        throw new Error("Token refresh failed");
       }
     } catch (error) {
       console.error("Session expired or refresh failed.", error);
-      setIsSessionExpired(true); // Show session expired popup
+      setUser(null);
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("username");
+      router.push("/auth/login");
+      throw error;
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshTokens, isSessionExpired }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshTokens }}>
       {children}
-      {isSessionExpired && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-semibold mb-4">Session Expired</h2>
-            <p className="mb-4">Please log in again.</p>
-            <button
-              onClick={logout}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md"
-            >
-              Log Out
-            </button>
-          </div>
-        </div>
-      )}
     </AuthContext.Provider>
   );
 };

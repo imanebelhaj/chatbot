@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useContext } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import { AuthContext } from "@/context/AuthContext";
+import useSessionCheck from "@/hooks/useSessionCheck";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -25,6 +25,8 @@ interface Message {
 }
 
 export default function ConversationPage() {
+  // useSessionCheck();
+
   const [prompt, setPrompt] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -37,12 +39,7 @@ export default function ConversationPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
-  const authContext = useContext(AuthContext);
-  if (!authContext) {
-    throw new Error("AuthContext must be used within an AuthProvider");
-  }
-  const { isSessionExpired, logout } = authContext;
-
+  
   // Get conversation ID from URL if available
   const params = useParams();
   
@@ -51,6 +48,15 @@ export default function ConversationPage() {
     ? params.id[0] 
     : params?.id;
 
+
+    // useEffect(() => {
+    //   const isSessionExpired = localStorage.getItem("isSessionExpired") === "true";
+    //   if (isSessionExpired) {
+    //     window.location.href = "/auth/login";
+    //   }
+    // }, []);
+
+    
   // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();

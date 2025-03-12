@@ -12,14 +12,29 @@ export const loginUser = async (username: string, password: string) => {
   return await res.json();
 };
 
-export const refreshToken = async () => {
+
+export const refreshToken = async (refreshToken: string) => {
+  console.log(`Sending refresh token: ${refreshToken}`);
   const res = await fetch(`${API_URL}/refresh/`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
     credentials: "include",
   });
   if (!res.ok) throw new Error("Session expired");
   return await res.json();
 };
+
+
+// export const refreshToken = async () => {
+//   const res = await fetch(`${API_URL}/refresh/`, {
+//     method: "POST",
+//     credentials: "include",
+//   });
+//   if (!res.ok) throw new Error("Session expired");
+//   return await res.json();
+// };
+
 
 export const logoutUser = async () => {
   await fetch(`${API_URL}/logout/`, {

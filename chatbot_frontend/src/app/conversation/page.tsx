@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import Image from "next/image";
+import useSessionCheck from "@/hooks/useSessionCheck";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -25,6 +26,9 @@ type Message = {
 };
 
 export default function ConversationPage() {
+ // useSessionCheck();
+
+
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -42,6 +46,16 @@ export default function ConversationPage() {
   // Handle the optional route parameter
   const urlConversationId = params?.id?.[0] || null;
 
+
+  // useEffect(() => {
+  //   const isSessionExpired = localStorage.getItem("isSessionExpired") === "true";
+  //   if (isSessionExpired) {
+  //     window.location.href = "/auth/login";
+  //   }
+  // }, []);
+
+
+  
   // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
@@ -82,6 +96,10 @@ export default function ConversationPage() {
       window.removeEventListener('sidebarStateChanged', handleSidebarStateChange);
     };
   }, []);
+
+  
+
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -358,6 +376,8 @@ export default function ConversationPage() {
   };
 
   return (
+
+    
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar />
@@ -543,5 +563,7 @@ export default function ConversationPage() {
         </div>
       </div>
     </div>
+   
   );
+  
 }
