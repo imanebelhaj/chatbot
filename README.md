@@ -105,6 +105,7 @@ python manage.py migrate
 ```
 
 #### Create a `.env` file for API keys:
+Generate your API key by visiting OpenRouter API keys page.
 In the backend directory, create a `.env` file and add your OpenRouter API key:
 ```sh
 KEY=your_api_key_here
