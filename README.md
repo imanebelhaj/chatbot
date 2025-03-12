@@ -136,7 +136,7 @@ path('delete_profile/',
 
 Navigate to the frontend folder:
 ```sh
-cd frontend
+cd chatbot_frontend
 ```
 
 Install dependencies:
