@@ -14,11 +14,11 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 import mimetypes
 from .decorators import validate_token
-
+from openai import OpenAI
 
 load_dotenv()
 
-from openai import OpenAI
+
 
 client2 = OpenAI(
   base_url="https://openrouter.ai/api/v1",
