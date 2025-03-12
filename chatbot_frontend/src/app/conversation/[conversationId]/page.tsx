@@ -401,11 +401,7 @@ export default function ConversationPage() {
   : 'bg-gradient-to-r from-indigo-200 to-blue-300 text-gray-900'
 }`}>
     
-    {/* // <div className={`flex h-screen ${isDarkMode 
-    //   ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-gray-100' 
-    //   : 'bg-gradient-to-r from-indigo-200 to-blue-300 text-gray-900'
-    // }`}>
-      */}
+  
       <Sidebar />
       
       {/* Main content - adjust width and margin based on sidebar state */}

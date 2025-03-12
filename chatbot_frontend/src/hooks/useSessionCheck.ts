@@ -3,7 +3,6 @@
 import { useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '@/context/AuthContext';
-//import jwtDecode from 'jwt-decode';
 import { jwtDecode } from "jwt-decode";
 interface JwtPayload {
   exp: number;
@@ -25,14 +24,17 @@ const useSessionCheck = () => {
             console.log("No access token found. Attempting to refresh...");
             const success = await auth.refreshTokens();
             if (!success) {
+              auth.logout();
               router.push('/auth/login');
             }
           } catch (error) {
             console.error("Token refresh failed:", error);
+            auth.logout();
             router.push('/auth/login');
           }
         } else {
           console.log("No tokens available. Redirecting to login...");
+          auth?.logout();
           router.push('/auth/login');
         }
         return;
@@ -50,10 +52,12 @@ const useSessionCheck = () => {
             try {
               const success = await auth.refreshTokens();
               if (!success) {
+                auth.logout();
                 router.push('/auth/login');
               }
             } catch (error) {
               console.error("Proactive refresh failed:", error);
+              auth.logout();
               router.push('/auth/login');
             }
           }
@@ -64,13 +68,16 @@ const useSessionCheck = () => {
           try {
             const success = await auth.refreshTokens();
             if (!success) {
+              auth.logout();
               router.push('/auth/login');
             }
           } catch (refreshError) {
             console.error("Token refresh failed after validation error:", refreshError);
+            auth.logout();
             router.push('/auth/login');
           }
         } else {
+          auth?.logout();
           router.push('/auth/login');
         }
       }

@@ -21,6 +21,7 @@ export default function Navbar() {
     setIsModalOpen(false);
   };
   
+  
   return (
     <>
       <nav className={`flex items-center justify-between ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} shadow-md px-6 py-3`}>

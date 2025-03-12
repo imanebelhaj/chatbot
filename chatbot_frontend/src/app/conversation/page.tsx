@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
-// Define our message type with attachments
 type Attachment = {
   id: string;
   file_name: string;
@@ -24,8 +24,6 @@ type Message = {
 };
 
 export default function ConversationPage() {
-  // useSessionCheck();
-
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -37,22 +35,24 @@ export default function ConversationPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   
   const params = useParams();
   const urlConversationId = params?.id?.[0] || null;
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    setIsDarkMode(savedTheme === "dark");
+  }, []);
+
+  useEffect(() => {
     const handleThemeChange = (event: Event) => {
-      const savedTheme = localStorage.getItem("theme");
       const customEvent = event as CustomEvent;
       if (customEvent.detail && customEvent.detail.isDarkMode !== undefined) {
         setIsDarkMode(customEvent.detail.isDarkMode);
       }
     };
-    // Check saved theme preference
-    const savedTheme = localStorage.getItem("theme");
-    setIsDarkMode(savedTheme === "dark");
-    
+
     document.addEventListener('themeChange', handleThemeChange);
     
     return () => {
@@ -60,12 +60,10 @@ export default function ConversationPage() {
     };
   }, []);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Load conversation when URL param changes
   useEffect(() => {
     if (urlConversationId && urlConversationId !== conversationId) {
       setConversationId(urlConversationId);
@@ -73,20 +71,14 @@ export default function ConversationPage() {
     }
   }, [urlConversationId, conversationId]);
 
-  
-  // Check sidebar state from localStorage
   useEffect(() => {
     const checkSidebarState = () => {
       const savedState = localStorage.getItem('sidebar_collapsed');
       setIsSidebarCollapsed(savedState === 'true');
     };
 
-
-    // Initial check
     checkSidebarState();
 
-
-    // Listen for changes to sidebar state
     const handleSidebarStateChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail && customEvent.detail.isCollapsed !== undefined) {
@@ -98,19 +90,15 @@ export default function ConversationPage() {
 
     window.addEventListener('sidebarStateChanged', handleSidebarStateChange);
 
-    // Cleanup
     return () => {
       window.removeEventListener('sidebarStateChanged', handleSidebarStateChange);
     };
   }, []);
 
- 
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
@@ -119,7 +107,6 @@ export default function ConversationPage() {
     }
   };
 
-  // Handle file drop
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
@@ -130,7 +117,6 @@ export default function ConversationPage() {
     }
   };
 
-  // Handle drag events
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(true);
@@ -140,17 +126,14 @@ export default function ConversationPage() {
     setIsDragging(false);
   };
 
-  // Remove a selected file
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Open file browser
   const openFileBrowser = () => {
     fileInputRef.current?.click();
   };
 
-  // Function to load conversation history
   async function loadConversationHistory(id: string) {
     setIsLoadingHistory(true);
     try {
@@ -165,7 +148,6 @@ export default function ConversationPage() {
       const data = await response.json();
 
       if (response.ok && data.messages) {
-        // Transform the message format to match our component's structure
         const formattedMessages = data.messages.map((msg: any) => ({
           user: msg.user_message,
           ai: msg.ai_response,
@@ -175,7 +157,6 @@ export default function ConversationPage() {
         setMessages(formattedMessages);
       } else {
         console.error("Error loading conversation:", data.error);
-        // Optionally show an error message to the user
       }
     } catch (error) {
       console.error("Failed to load conversation history:", error);
@@ -184,12 +165,10 @@ export default function ConversationPage() {
     }
   }
 
-  // Function to send a message to the backend
   async function sendMessage(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if ((!prompt.trim() && selectedFiles.length === 0) || isLoading) return;
 
-    // Add user message immediately for better UX
     setMessages(prev => [...prev, { 
       user: prompt, 
       ai: "",
@@ -211,7 +190,6 @@ export default function ConversationPage() {
     setIsLoading(true);
 
     try {
-      // Create FormData to send files
       const formData = new FormData();
       formData.append("prompt_message", currentPrompt);
       
@@ -234,7 +212,6 @@ export default function ConversationPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Update the last message with AI response and actual file information
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = { 
@@ -245,12 +222,12 @@ export default function ConversationPage() {
           return newMessages;
         });
         
-        // Set conversation ID if it's a new conversation
         if (!conversationId) {
           setConversationId(data.conversation_id);
+          localStorage.setItem('selected_conversation_id', data.conversation_id);
+          router.push(`/conversation/${data.conversation_id}`);
         }
       } else {
-        // Handle error by updating the last message
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = { 
@@ -263,7 +240,6 @@ export default function ConversationPage() {
         console.error("Error:", data.error || "Unknown error occurred");
       }
     } catch (error) {
-      // Handle network error
       setMessages(prev => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = { 
@@ -279,35 +255,28 @@ export default function ConversationPage() {
     }
   }
 
-  // Helper function to get file category from filename
   function getFileCategory(filename: string): string {
     const extension = filename.split('.').pop()?.toLowerCase() || '';
     
-    if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'].some(ext => 
-        extension.endsWith(ext.replace('.', '')))) {
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'svg'].includes(extension)) {
       return 'image';
     }
-    if (['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.rtf'].some(ext => 
-        extension.endsWith(ext.replace('.', '')))) {
+    if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf'].includes(extension)) {
       return 'document';
     }
-    if (['.zip', '.rar', '.7z', '.tar', '.gz'].some(ext => 
-        extension.endsWith(ext.replace('.', '')))) {
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) {
       return 'archive';
     }
-    if (['.mp3', '.wav', '.ogg', '.flac'].some(ext => 
-        extension.endsWith(ext.replace('.', '')))) {
+    if (['mp3', 'wav', 'ogg', 'flac'].includes(extension)) {
       return 'audio';
     }
-    if (['.mp4', '.mov', '.avi', '.mkv', '.wmv'].some(ext => 
-        extension.endsWith(ext.replace('.', '')))) {
+    if (['mp4', 'mov', 'avi', 'mkv', 'wmv'].includes(extension)) {
       return 'video';
     }
     
     return 'other';
   }
 
-  // Render file attachment based on type
   const renderAttachment = (attachment: Attachment) => {
     switch (attachment.file_category) {
       case 'image':
@@ -381,17 +350,14 @@ export default function ConversationPage() {
   };
 
   return (
-    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      {/* Sidebar */}
+    <div className={`flex h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Sidebar />
       
-      {/* Main content - adjust margin based on sidebar state */}
       <div className={`flex-1 flex flex-col w-full transition-all duration-300 ${
         isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'
       }`}>
         <Navbar />
         
-        {/* Loading state */}
         {isLoadingHistory && (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center">
@@ -401,7 +367,6 @@ export default function ConversationPage() {
           </div>
         )}
         
-        {/* Empty state - only show when not loading history */}
         {messages.length === 0 && !isLoadingHistory && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-md px-6">
@@ -416,18 +381,15 @@ export default function ConversationPage() {
           </div>
         )}
         
-        {/* Messages container */}
         {messages.length > 0 && !isLoadingHistory && (
           <div className={`flex-1 overflow-y-auto px-4 py-6 md:px-6 ${isDarkMode ? 'bg-gray-900' : ''}`}>
             <div className="max-w-4xl mx-auto space-y-6">
               {messages.map((msg, index) => (
                 <div key={index} className="space-y-4">
-                  {/* User message */}
                   <div className="flex justify-end">
                     <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-none max-w-md">
                       <p>{msg.user}</p>
                       
-                      {/* User's file attachments */}
                       {msg.attachments && msg.attachments.length > 0 && (
                         <div className="mt-2 space-y-2">
                           {msg.attachments.map((attachment, i) => (
@@ -440,7 +402,6 @@ export default function ConversationPage() {
                     </div>
                   </div>
                   
-                  {/* AI message */}
                   <div className="flex">
                     <div className={`${
                       isDarkMode 
@@ -465,7 +426,6 @@ export default function ConversationPage() {
           </div>
         )}
         
-        {/* File upload preview */}
         {selectedFiles.length > 0 && (
           <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-2 md:px-6`}>
             <div className="max-w-4xl mx-auto">
@@ -499,7 +459,6 @@ export default function ConversationPage() {
           </div>
         )}
         
-        {/* Message input */}
         <div 
           className={`border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4 md:px-6 ${isDragging ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
           onDragOver={handleDragOver}
@@ -556,7 +515,6 @@ export default function ConversationPage() {
               </button>
             </form>
             
-            {/* File drop hint */}
             {isDragging && (
               <div className={`absolute inset-0 ${isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'bg-blue-50 bg-opacity-50'} flex items-center justify-center z-10 pointer-events-none`}>
                 <div className={`${isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-900'} p-6 rounded-lg shadow-lg text-center`}>
