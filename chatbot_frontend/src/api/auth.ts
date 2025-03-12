@@ -1,44 +1,37 @@
+import { api } from '@/context/AuthContext';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-
 export const loginUser = async (username: string, password: string) => {
-  const res = await fetch(`${API_URL}/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-    credentials: "include", // Allow cookies for refresh token
-  });
-  if (!res.ok) throw new Error("Invalid credentials");
-  return await res.json();
+  try {
+    const response = await api.post('/login/', {
+      username,
+      password
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Login API error:", error);
+    throw error;
+  }
 };
-
 
 export const refreshToken = async (refreshToken: string) => {
-  console.log(`Sending refresh token: ${refreshToken}`);
-  const res = await fetch(`${API_URL}/refresh/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Session expired");
-  return await res.json();
+  try {
+    const response = await api.post('/refresh/', {
+      refresh_token: refreshToken
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Refresh token API error:", error);
+    throw error;
+  }
 };
 
-
-// export const refreshToken = async () => {
-//   const res = await fetch(`${API_URL}/refresh/`, {
-//     method: "POST",
-//     credentials: "include",
-//   });
-//   if (!res.ok) throw new Error("Session expired");
-//   return await res.json();
-// };
-
-
 export const logoutUser = async () => {
-  await fetch(`${API_URL}/logout/`, {
-    method: "POST",
-    credentials: "include",
-  });
+  try {
+    await api.post('/logout/');
+  } catch (error) {
+    console.error("Logout API error:", error);
+    throw error;
+  }
 };

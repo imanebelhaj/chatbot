@@ -4,8 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import useSessionCheck from "@/hooks/useSessionCheck";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -26,8 +24,7 @@ type Message = {
 };
 
 export default function ConversationPage() {
- // useSessionCheck();
-
+  // useSessionCheck();
 
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,25 +34,32 @@ export default function ConversationPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Get conversation ID from URL if available
   const params = useParams();
-  // Handle the optional route parameter
   const urlConversationId = params?.id?.[0] || null;
 
+  useEffect(() => {
+    const handleThemeChange = (event: Event) => {
+      const savedTheme = localStorage.getItem("theme");
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.isDarkMode !== undefined) {
+        setIsDarkMode(customEvent.detail.isDarkMode);
+      }
+    };
+    // Check saved theme preference
+    const savedTheme = localStorage.getItem("theme");
+    setIsDarkMode(savedTheme === "dark");
+    
+    document.addEventListener('themeChange', handleThemeChange);
+    
+    return () => {
+      document.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, []);
 
-  // useEffect(() => {
-  //   const isSessionExpired = localStorage.getItem("isSessionExpired") === "true";
-  //   if (isSessionExpired) {
-  //     window.location.href = "/auth/login";
-  //   }
-  // }, []);
-
-
-  
   // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
@@ -69,6 +73,7 @@ export default function ConversationPage() {
     }
   }, [urlConversationId, conversationId]);
 
+  
   // Check sidebar state from localStorage
   useEffect(() => {
     const checkSidebarState = () => {
@@ -76,8 +81,10 @@ export default function ConversationPage() {
       setIsSidebarCollapsed(savedState === 'true');
     };
 
+
     // Initial check
     checkSidebarState();
+
 
     // Listen for changes to sidebar state
     const handleSidebarStateChange = (event: Event) => {
@@ -97,9 +104,7 @@ export default function ConversationPage() {
     };
   }, []);
 
-  
-
-
+ 
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -308,7 +313,7 @@ export default function ConversationPage() {
       case 'image':
         return (
           <div className="mt-2 relative">
-            <div className="rounded-lg overflow-hidden border border-gray-200">
+            <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
               <a href={attachment.file_url} target="_blank" rel="noopener noreferrer">
                 <img 
                   src={attachment.file_url} 
@@ -317,7 +322,7 @@ export default function ConversationPage() {
                 />
               </a>
             </div>
-            <div className="text-xs text-gray-500 mt-1">{attachment.file_name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{attachment.file_name}</div>
           </div>
         );
       
@@ -326,13 +331,13 @@ export default function ConversationPage() {
           <div className="mt-2">
             <video 
               controls 
-              className="max-w-full rounded-lg border border-gray-200"
+              className="max-w-full rounded-lg border border-gray-200 dark:border-gray-700"
               style={{ maxHeight: '240px' }}
             >
               <source src={attachment.file_url} type={attachment.file_type} />
               Your browser does not support the video tag.
             </video>
-            <div className="text-xs text-gray-500 mt-1">{attachment.file_name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{attachment.file_name}</div>
           </div>
         );
       
@@ -343,7 +348,7 @@ export default function ConversationPage() {
               <source src={attachment.file_url} type={attachment.file_type} />
               Your browser does not support the audio element.
             </audio>
-            <div className="text-xs text-gray-500 mt-1">{attachment.file_name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{attachment.file_name}</div>
           </div>
         );
       
@@ -356,16 +361,16 @@ export default function ConversationPage() {
               href={attachment.file_url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+              className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              <div className="bg-gray-100 p-2 rounded-lg mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+              <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-medium text-gray-700">{attachment.file_name}</div>
-                <div className="text-xs text-gray-500">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{attachment.file_name}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {attachment.file_type || "Document"}
                 </div>
               </div>
@@ -376,9 +381,7 @@ export default function ConversationPage() {
   };
 
   return (
-
-    
-    <div className="flex h-screen bg-gray-50">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Sidebar */}
       <Sidebar />
       
@@ -393,7 +396,7 @@ export default function ConversationPage() {
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-gray-500">Loading conversation...</p>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>Loading conversation...</p>
             </div>
           </div>
         )}
@@ -402,20 +405,20 @@ export default function ConversationPage() {
         {messages.length === 0 && !isLoadingHistory && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-md px-6">
-              <div className="bg-blue-100 text-blue-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className=" bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600  text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Start a conversation</h3>
-              <p className="text-gray-500">Type a message below to begin chatting with our AI assistant.</p>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} mb-2`}>Start a conversation</h3>
+              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Type a message below to begin chatting with our AI assistant.</p>
             </div>
           </div>
         )}
         
         {/* Messages container */}
         {messages.length > 0 && !isLoadingHistory && (
-          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6">
+          <div className={`flex-1 overflow-y-auto px-4 py-6 md:px-6 ${isDarkMode ? 'bg-gray-900' : ''}`}>
             <div className="max-w-4xl mx-auto space-y-6">
               {messages.map((msg, index) => (
                 <div key={index} className="space-y-4">
@@ -439,14 +442,18 @@ export default function ConversationPage() {
                   
                   {/* AI message */}
                   <div className="flex">
-                    <div className="bg-white border border-gray-200 shadow-sm px-4 py-3 rounded-2xl rounded-tl-none max-w-md">
+                    <div className={`${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-700 text-gray-200' 
+                        : 'bg-white border-gray-200 text-gray-700'
+                    } border shadow-sm px-4 py-3 rounded-2xl rounded-tl-none max-w-md`}>
                       {msg.ai ? (
-                        <p className="text-gray-700 whitespace-pre-wrap">{msg.ai}</p>
+                        <p className="whitespace-pre-wrap">{msg.ai}</p>
                       ) : (
                         <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style={{ animationDelay: "300ms" }}></div>
                         </div>
                       )}
                     </div>
@@ -460,26 +467,26 @@ export default function ConversationPage() {
         
         {/* File upload preview */}
         {selectedFiles.length > 0 && (
-          <div className="bg-white border-t px-4 py-2 md:px-6">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-2 md:px-6`}>
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-700">Selected Files ({selectedFiles.length})</h3>
+                <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Selected Files ({selectedFiles.length})</h3>
                 <button 
                   onClick={() => setSelectedFiles([])}
-                  className="text-xs text-red-600 hover:text-red-800"
+                  className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                 >
                   Clear all
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="relative bg-gray-50 border rounded-lg p-2 text-xs flex items-center max-w-xs">
-                    <div className="truncate mr-6">
+                  <div key={index} className={`relative ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-lg p-2 text-xs flex items-center max-w-xs`}>
+                    <div className={`truncate mr-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {file.name}
                     </div>
                     <button 
                       onClick={() => removeFile(index)}
-                      className="absolute right-1 text-gray-400 hover:text-red-500"
+                      className={`absolute right-1 ${isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -494,7 +501,7 @@ export default function ConversationPage() {
         
         {/* Message input */}
         <div 
-          className={`border-t bg-white p-4 md:px-6 ${isDragging ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+          className={`border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4 md:px-6 ${isDragging ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -513,7 +520,7 @@ export default function ConversationPage() {
               <button
                 type="button"
                 onClick={openFileBrowser}
-                className="p-2.5 rounded-full text-gray-500 hover:text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none"
+                className={`p-2.5 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-gray-200 border-gray-700 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 border-gray-300 hover:bg-gray-50'} border focus:outline-none`}
                 disabled={isLoading || isLoadingHistory}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -525,7 +532,11 @@ export default function ConversationPage() {
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`flex-1 border rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
                 placeholder={isDragging ? "Drop files here..." : "Type a message or drop files..."}
                 disabled={isLoading || isLoadingHistory}
               />
@@ -535,7 +546,7 @@ export default function ConversationPage() {
                 disabled={(!prompt.trim() && selectedFiles.length === 0) || isLoading || isLoadingHistory}
                 className={`p-2.5 rounded-full text-white focus:outline-none ${
                   (!prompt.trim() && selectedFiles.length === 0) || isLoading || isLoadingHistory
-                    ? "bg-blue-400 cursor-not-allowed" 
+                    ? "bg-blue-400 dark:bg-blue-600 dark:opacity-50 cursor-not-allowed" 
                     : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
                 }`}
               >
@@ -547,15 +558,15 @@ export default function ConversationPage() {
             
             {/* File drop hint */}
             {isDragging && (
-              <div className="absolute inset-0 bg-blue-50 bg-opacity-50 flex items-center justify-center z-10 pointer-events-none">
-                <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className={`absolute inset-0 ${isDarkMode ? 'bg-blue-900 bg-opacity-30' : 'bg-blue-50 bg-opacity-50'} flex items-center justify-center z-10 pointer-events-none`}>
+                <div className={`${isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-900'} p-6 rounded-lg shadow-lg text-center`}>
                   <div className="text-blue-500 mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900">Drop your files here</h3>
-                  <p className="text-sm text-gray-500">Supported formats: images, documents, archives, audio, video</p>
+                  <h3 className={`text-lg font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Drop your files here</h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Supported formats: images, documents, archives, audio, video</p>
                 </div>
               </div>
             )}
@@ -563,7 +574,5 @@ export default function ConversationPage() {
         </div>
       </div>
     </div>
-   
   );
-  
 }

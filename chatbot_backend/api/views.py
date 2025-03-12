@@ -151,7 +151,7 @@ def chat(request):
 def get_chat_history2(request):
     if request.method == "POST":
         try:
-            conversations = Conversation.objects.filter(user=request.user)
+            conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')
 
             chat_history = []
             for convo in conversations:
@@ -348,7 +348,6 @@ def refresh_token(request):
 @permission_classes([IsAuthenticated])
 @validate_token
 def get_profile(request):
-    """Retrieve the authenticated user's profile."""
     try:
         user = request.user
         return JsonResponse({
@@ -360,22 +359,19 @@ def get_profile(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+
 #delete the authenticated user's profile
 @csrf_exempt
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 @validate_token
 def delete_profile(request):
-    """Delete the authenticated user's account and associated data."""
     try:
         user = request.user
         user.delete()
         return JsonResponse({"message": "User profile deleted successfully."}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-
 
 
 

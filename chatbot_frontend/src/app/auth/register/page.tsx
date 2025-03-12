@@ -52,23 +52,23 @@ export default function RegisterPage() {
 
   return (
     <div
-      className={`min-h-screen flex transition-all duration-500 ${
+      className={`min-h-screen flex flex-col md:flex-row transition-all duration-500 ${
         isDarkMode
           ? "bg-gray-950 text-white"
           : "bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900"
       }`}
     >
       {/* Left side - Form */}
-      <div className="w-1/2 flex justify-center items-center p-8">
+      <div className="w-full md:w-1/2 flex justify-center items-center p-4 md:p-8 order-2 md:order-1">
         <div
-          className={`w-full max-w-md p-8 rounded-2xl backdrop-blur-lg border ${
+          className={`w-full max-w-md p-6 md:p-8 rounded-2xl backdrop-blur-lg border ${
             isDarkMode
               ? "bg-gray-900/50 border-gray-800 shadow-2xl shadow-gray-950/50"
               : "bg-white/50 border-gray-200 shadow-2xl shadow-gray-400/20"
           }`}
         >
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+          <div className="flex justify-between items-center mb-6 md:mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
               Register
             </h2>
             <button
@@ -87,7 +87,7 @@ export default function RegisterPage() {
             <p className="text-green-500 text-center mb-4 font-medium">{success}</p>
           )}
 
-          <form onSubmit={handleRegister} className="flex flex-col space-y-6">
+          <form onSubmit={handleRegister} className="flex flex-col space-y-4 md:space-y-6">
             <input
               type="text"
               placeholder="Username"
@@ -149,10 +149,10 @@ export default function RegisterPage() {
       </div>
 
       {/* Right side - Illustration */}
-      <div className="w-1/2 flex justify-center items-center p-8 relative overflow-hidden">
+      <div className="w-full md:w-1/2 flex justify-center items-center p-4 md:p-8 relative overflow-hidden order-1 md:order-2">
         <div className={`relative z-10 ${isDarkMode ? "opacity-90" : "opacity-95"}`}>
           {/* SVG Chatbot Illustration */}
-          <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-full max-w-xs md:max-w-md" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
             {/* Robot/Chatbot Head */}
             <rect x="120" y="80" width="160" height="140" rx="20" fill={isDarkMode ? "#3B82F6" : "#60A5FA"} />
             <rect x="140" y="220" width="120" height="30" rx="10" fill={isDarkMode ? "#3B82F6" : "#60A5FA"} />
@@ -192,9 +192,9 @@ export default function RegisterPage() {
         </div>
         
         {/* Additional text */}
-        <div className={`absolute bottom-10 text-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-          <h3 className="text-xl font-bold mb-2">Join Our Community</h3>
-          <p className="text-sm max-w-xs">Connect with our AI assistant and get your questions answered instantly</p>
+        <div className={`absolute bottom-4 md:bottom-10 text-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+          <h3 className="text-lg md:text-xl font-bold mb-1 md:mb-2">Join Our Community</h3>
+          <p className="text-xs md:text-sm max-w-xs">Connect with our AI assistant and get your questions answered instantly</p>
         </div>
       </div>
     </div>

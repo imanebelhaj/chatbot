@@ -21,9 +21,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       const accessToken = localStorage.getItem("access_token");
+      const refreshToken = localStorage.getItem("refresh_token");
       console.log("Access token:", accessToken);
+      console.log("Refresh token:", refreshToken);
       
-      if (!accessToken) {
+      if (!accessToken || !refreshToken) {
         // Attempt to refresh the token if access token is missing
         if (auth?.refreshTokens && !refreshAttempted) {
           console.log("Attempting to refresh token...");
@@ -46,7 +48,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           setIsLoading(false);
         }
       } else {
-        // We have an access token, consider user authorized
+        // We have both access and refresh tokens, consider user authorized
         setIsAuthorized(true);
         setIsLoading(false);
       }

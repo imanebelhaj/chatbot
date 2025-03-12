@@ -14,6 +14,7 @@ urlpatterns = [
     path('profile/', views.get_profile, name='get_profile'),
     path('conversation_delete/<str:conversation_id>/', views.delete_conversation, name='delete_conversation'),
     path('delete_profile/', views.delete_profile, name='delete_profile'),
+    # path('validate-token/', views.validate_token2, name='validate_token2'),
 ]
 
 if settings.DEBUG:

@@ -7,6 +7,8 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const { login } = useAuth();
 
   useEffect(() => {
@@ -21,28 +23,39 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    // Validate form fields
+    if (!username.trim() || !password.trim()) {
+      setError("All fields are required");
+      return;
+    }
+
     try {
       await login(username, password);
+      setSuccess("Login successful!");
     } catch (error) {
       console.error("Login failed", error);
+      setError("Invalid username or password");
     }
   };
 
   return (
     <div
-      className={`min-h-screen flex transition-all duration-500 ${
+      className={`min-h-screen flex flex-col md:flex-row transition-all duration-500 ${
         isDarkMode ? "bg-gray-900 text-white" : "bg-gradient-to-r from-indigo-200 to-blue-300 text-gray-900"
       }`}
     >
       {/* Left side - Form */}
-      <div className="w-1/2 flex justify-center items-center p-8">
+      <div className="w-full md:w-1/2 flex justify-center items-center p-4 md:p-8 order-2 md:order-1">
         <div
-          className={`p-8 rounded-xl shadow-2xl w-full max-w-md space-y-6 transition-all duration-500 ${
+          className={`p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-md space-y-4 md:space-y-6 transition-all duration-500 ${
             isDarkMode ? "bg-gray-800 shadow-gray-950/50" : "bg-white shadow-gray-400/20"
           }`}
         >
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">Log In</h2>
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">Log In</h2>
             <button
               type="button"
               onClick={toggleDarkMode}
@@ -52,7 +65,14 @@ const Login = () => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <p className="text-red-500 text-center mb-4 font-medium">{error}</p>
+          )}
+          {success && (
+            <p className="text-green-500 text-center mb-4 font-medium">{success}</p>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <input
               type="text"
               value={username}
@@ -63,6 +83,7 @@ const Login = () => {
                   ? "bg-gray-700 border-gray-600 focus:ring-indigo-500 text-white"
                   : "bg-white border-gray-300 focus:ring-indigo-500 text-gray-900"
               }`}
+              required
             />
             <input
               type="password"
@@ -74,6 +95,7 @@ const Login = () => {
                   ? "bg-gray-700 border-gray-600 focus:ring-indigo-500 text-white"
                   : "bg-white border-gray-300 focus:ring-indigo-500 text-gray-900"
               }`}
+              required
             />
             <button
               type="submit"
@@ -100,10 +122,10 @@ const Login = () => {
       </div>
 
       {/* Right side - Illustration */}
-      <div className="w-1/2 flex justify-center items-center p-8 relative overflow-hidden">
+      <div className="w-full md:w-1/2 flex justify-center items-center p-4 md:p-8 relative overflow-hidden order-1 md:order-2">
         <div className={`relative z-10 ${isDarkMode ? "opacity-90" : "opacity-95"}`}>
           {/* Lock and Key Illustration */}
-          <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-full max-w-xs md:max-w-md" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
             {/* Lock Body */}
             <rect x="140" y="170" width="120" height="140" rx="15" fill={isDarkMode ? "#4F46E5" : "#6366F1"} />
             
@@ -160,9 +182,9 @@ const Login = () => {
         </div>
         
         {/* Additional text */}
-        <div className={`absolute bottom-10 text-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-          <h3 className="text-xl font-bold mb-2">Welcome Back</h3>
-          <p className="text-sm max-w-xs">Securely access your account and continue your journey with us</p>
+        <div className={`absolute bottom-4 md:bottom-10 text-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+          <h3 className="text-lg md:text-xl font-bold mb-1 md:mb-2">Welcome Back</h3>
+          <p className="text-xs md:text-sm max-w-xs">Securely access your account and continue your journey with us</p>
         </div>
       </div>
     </div>

@@ -2,32 +2,81 @@
 
 import { useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '@/context/AuthContext'; // Adjust path based on your project structure
+import { AuthContext } from '@/context/AuthContext';
+//import jwtDecode from 'jwt-decode';
+import { jwtDecode } from "jwt-decode";
+interface JwtPayload {
+  exp: number;
+}
 
 const useSessionCheck = () => {
   const router = useRouter();
   const auth = useContext(AuthContext);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("access_token");
-
-    console.log("Access token:", accessToken);
-
-    if (!accessToken ) { //|| !auth?.use
-      // Attempt to refresh the token if access token is missing or user is not authenticated
-      if (auth?.refreshTokens) {
-        console.log("Attempting to refresh token...");
-        auth.refreshTokens().catch(() => {
-          // If refresh fails, redirect to login
-          console.log("Token refresh failed, redirecting to login page...");
+    const checkSession = async () => {
+      const accessToken = localStorage.getItem("access_token");
+      
+      if (!accessToken) {
+        // No token - check for refresh token
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (refreshToken && auth?.refreshTokens) {
+          try {
+            console.log("No access token found. Attempting to refresh...");
+            const success = await auth.refreshTokens();
+            if (!success) {
+              router.push('/auth/login');
+            }
+          } catch (error) {
+            console.error("Token refresh failed:", error);
+            router.push('/auth/login');
+          }
+        } else {
+          console.log("No tokens available. Redirecting to login...");
           router.push('/auth/login');
-        });
-      } else {
-        // Redirect to login page if refreshTokens function is not available
-        console.log("Redirecting to login page...");
-        router.push('/auth/login');
+        }
+        return;
       }
-    }
+      
+      // Validate token expiration
+      try {
+        const payload = jwtDecode<JwtPayload>(accessToken);
+        const currentTime = Date.now() / 1000;
+        
+        // If token is expired or about to expire in the next 5 minutes
+        if (payload.exp - currentTime < 300) { // 300 seconds = 5 minutes
+          console.log("Token is about to expire. Attempting refresh...");
+          if (auth?.refreshTokens) {
+            try {
+              const success = await auth.refreshTokens();
+              if (!success) {
+                router.push('/auth/login');
+              }
+            } catch (error) {
+              console.error("Proactive refresh failed:", error);
+              router.push('/auth/login');
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Invalid token format:", error);
+        if (auth?.refreshTokens) {
+          try {
+            const success = await auth.refreshTokens();
+            if (!success) {
+              router.push('/auth/login');
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed after validation error:", refreshError);
+            router.push('/auth/login');
+          }
+        } else {
+          router.push('/auth/login');
+        }
+      }
+    };
+    
+    checkSession();
   }, [router, auth]);
 
   return auth;

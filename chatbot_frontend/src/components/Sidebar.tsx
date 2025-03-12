@@ -2,7 +2,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth"; // Assuming you have a useAuth hook to get user info
+import { useAuth } from "@/hooks/useAuth";
+import Image from 'next/image';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
@@ -28,10 +30,55 @@ export default function Sidebar() {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  //const { isDarkMode } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth(); // Assuming useAuth provides user info
+
+  //Listen for theme changes from Navbar
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const savedTheme = localStorage.getItem("theme");
+      setIsDarkMode(savedTheme === "dark");
+    };
+
+    window.addEventListener("storage", handleThemeChange);
+    document.addEventListener("themeChange", handleThemeChange);
+
+    return () => {
+      window.removeEventListener("storage", handleThemeChange);
+      document.removeEventListener("themeChange", handleThemeChange);
+    };
+  }, []);
+  
+  // Listen for theme changes from Navbar and localStorage
+  useEffect(() => {
+    // First, initialize from localStorage
+    const savedTheme = localStorage.getItem("theme");
+    setIsDarkMode(savedTheme === "dark");
+    
+    // Handle theme changes from localStorage (when another tab changes it)
+    const handleStorageChange = () => {
+      const savedTheme = localStorage.getItem("theme");
+      setIsDarkMode(savedTheme === "dark");
+    };
+    
+    // Handle custom event from Navbar component
+    const handleCustomThemeChange = (e: CustomEvent<{ isDarkMode: boolean }>) => {
+      setIsDarkMode(e.detail.isDarkMode);
+    };
+    
+    // Add event listeners
+    window.addEventListener("storage", handleStorageChange);
+    document.addEventListener("themeChange", handleCustomThemeChange as EventListener);
+    
+    // Clean up event listeners when component unmounts
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      document.removeEventListener("themeChange", handleCustomThemeChange as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     // Fetch user profile from backend
@@ -191,57 +238,32 @@ export default function Sidebar() {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
-    // Ensure mobile menu state is synced on larger screens
-    if (window.innerWidth >= 768) {
-      setIsMobileMenuOpen(!isCollapsed);
-    }
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-    // Keep desktop state in sync when on mobile
-    if (window.innerWidth < 768) {
-      setIsCollapsed(!isMobileMenuOpen);
-    }
+    setIsMobileMenuOpen(!isCollapsed);
   };
 
   // In Sidebar.jsx, after setting the collapsed state:
-useEffect(() => {
-  localStorage.setItem('sidebar_collapsed', isCollapsed.toString());
-  
-  // Dispatch custom event for other components to listen to
-  const event = new CustomEvent('sidebarStateChanged', {
-    detail: { isCollapsed }
-  });
-  window.dispatchEvent(event);
-}, [isCollapsed]);
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', isCollapsed.toString());
+    
+    // Dispatch custom event for other components to listen to
+    const event = new CustomEvent('sidebarStateChanged', {
+      detail: { isCollapsed }
+    });
+    window.dispatchEvent(event);
+  }, [isCollapsed]);
 
   return (
     <>
-      {/* Mobile toggle button - only visible on small screens */}
-      <button 
-        onClick={toggleMobileMenu}
-        className="fixed z-40 bottom-4 left-4 md:hidden p-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-          {isMobileMenuOpen ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          )}
-        </svg>
-      </button>
-    
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
+          <div className={`${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg p-6 max-w-sm mx-4`}>
             <h3 className="text-lg font-medium mb-4">Delete Conversation</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete this conversation? This action cannot be undone.</p>
+            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-6`}>Are you sure you want to delete this conversation? This action cannot be undone.</p>
             <div className="flex justify-end space-x-3">
               <button 
                 onClick={handleDeleteCancel} 
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                className={`px-4 py-2 border ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'} rounded-md transition-colors`}
               >
                 Cancel
               </button>
@@ -256,10 +278,10 @@ useEffect(() => {
         </div>
       )}
     
-      {/* Sidebar Toggle Button - Visible on desktop */}
+      {/* Top Toggle Button - visible on all screen sizes */}
       <button 
         onClick={toggleSidebar}
-        className={`fixed top-4 left-4 z-30 hidden md:flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transition-all duration-300 ${
+        className={`fixed top-4 left-4 z-30 flex items-center justify-center p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transition-all duration-300 ${
           isCollapsed ? 'translate-x-0' : 'translate-x-64'
         }`}
       >
@@ -274,26 +296,17 @@ useEffect(() => {
     
       {/* Sidebar container */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-20 w-72 bg-white text-gray-900 transform transition-all duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-20 w-72 ${
+          isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+        } transform transition-all duration-300 ease-in-out ${
           isCollapsed ? '-translate-x-full' : 'translate-x-0'
-        } ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${
-          isCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'
         } flex flex-col h-screen`}
       >
         {/* Sidebar header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center space-x-2">
+            <Image src="/logo.png" alt="logo" width={35} height={35} />
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">AI Chat</h1>
-            <button
-              onClick={toggleMobileMenu} 
-              className="p-1 rounded-md hover:bg-gray-200 md:hidden"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
           
           <Link href="/conversation/" passHref>
@@ -311,7 +324,7 @@ useEffect(() => {
           className="flex-1 overflow-y-auto py-2 custom-scrollbar"
           style={{
             scrollbarWidth: 'thin',
-            scrollbarColor: '#E5E7EB #F3F4F6'
+            scrollbarColor: isDarkMode ? '#4B5563 #1F2937' : '#E5E7EB #F3F4F6'
           }}
         >
           <style jsx global>{`
@@ -320,22 +333,22 @@ useEffect(() => {
               width: 6px;
             }
             .custom-scrollbar::-webkit-scrollbar-track {
-              background: #F3F4F6;
+              background: ${isDarkMode ? '#1F2937' : '#F3F4F6'};
               border-radius: 8px;
             }
             .custom-scrollbar::-webkit-scrollbar-thumb {
-              background-color: #E5E7EB;
+              background-color: ${isDarkMode ? '#4B5563' : '#E5E7EB'};
               border-radius: 8px;
-              border: 2px solid #F3F4F6;
+              border: 2px solid ${isDarkMode ? '#1F2937' : '#F3F4F6'};
             }
             .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background-color: #D1D5DB;
+              background-color: ${isDarkMode ? '#6B7280' : '#D1D5DB'};
             }
             
             /* For Firefox */
             .custom-scrollbar {
               scrollbar-width: thin;
-              scrollbar-color: #E5E7EB #F3F4F6;
+              scrollbar-color: ${isDarkMode ? '#4B5563 #1F2937' : '#E5E7EB #F3F4F6'};
             }
           `}</style>
           
@@ -345,11 +358,11 @@ useEffect(() => {
                 <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
               </div>
             ) : error ? (
-              <div className="text-center py-4 px-2 text-gray-500 text-sm">
+              <div className={`text-center py-4 px-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
                 <p>{error}</p>
               </div>
             ) : chatHistory.length === 0 ? (
-              <div className="text-center py-4 px-2 text-gray-500 text-sm">
+              <div className={`text-center py-4 px-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
                 <p>No conversations yet</p>
               </div>
             ) : (
@@ -362,8 +375,8 @@ useEffect(() => {
                       <div 
                         className={`flex items-center p-2.5 rounded-md transition-colors ${
                           isActive 
-                            ? "bg-gray-200" 
-                            : "hover:bg-gray-100"
+                            ? isDarkMode ? "bg-gray-700" : "bg-gray-200" 
+                            : isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
                         }`}
                       >
                         <div 
@@ -374,7 +387,7 @@ useEffect(() => {
                             <h3 className="text-sm font-medium truncate">
                               {conversation.title || "Untitled Conversation"}
                             </h3>
-                            <span className="text-xs text-gray-500 ml-1 flex-shrink-0">
+                            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ml-1 flex-shrink-0`}>
                               {formatDate(conversation.created_at)}
                             </span>
                           </div>
@@ -383,7 +396,7 @@ useEffect(() => {
                         {/* Delete icon */}
                         <button 
                           onClick={(e) => handleDeleteClick(e, conversation.conversation_id)}
-                          className="ml-2 p-1 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded transition-colors"
+                          className={`ml-2 p-1 ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600' : 'text-gray-500 hover:text-red-500 hover:bg-gray-200'} rounded transition-colors`}
                           title="Delete conversation"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
@@ -400,7 +413,7 @@ useEffect(() => {
         </div>
         
         {/* User section with toggle button */}
-        <div className="p-4 border-t border-gray-200 mt-auto">
+        <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} mt-auto`}>
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
               {profileLoading ? '?' : (userProfile?.username?.charAt(0).toUpperCase() || 'U')}
@@ -409,21 +422,11 @@ useEffect(() => {
               <div className="text-sm font-medium">
                 {profileLoading ? 'Loading...' : (userProfile?.username || 'User Name')}
               </div>
-              <div className="text-xs text-gray-500">Free Plan</div>
+              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Free Plan</div>
             </div>
-            
-            
           </div>
         </div>
       </aside>
-      
-      {/* Backdrop for mobile - appears when sidebar is open */}
-      <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden transition-opacity duration-300 ${
-          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={toggleMobileMenu}
-      />
     </>
   );
 }

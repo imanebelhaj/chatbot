@@ -1,10 +1,7 @@
-import { ReactNode } from "react";
-import Sidebar from "../../../components/Sidebar";
-import Navbar from "../../../components/Navbar";
-import { SessionProvider } from 'next-auth/react';
 import { Providers } from "../../providers";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ThemeProvider } from '@/context/ThemeContext';
 
 
 export default function MainLayout2({ children }: Readonly<{children: React.ReactNode;}>) {
@@ -12,7 +9,9 @@ export default function MainLayout2({ children }: Readonly<{children: React.Reac
         <div>
           <AuthProvider>
             <ProtectedRoute>
+            <ThemeProvider>
               <Providers>{children}</Providers>
+              </ThemeProvider>
             </ProtectedRoute>
           </AuthProvider>
         </div>
