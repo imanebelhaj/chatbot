@@ -150,6 +150,7 @@ npm run dev
 ```
 
 Open `localhost:3000/auth/login` in your browser to start.
+If you change the port number 300 make sure to allow in settings.py Cors policies allowed origins
 
 #### Install VS Code extension for PostCSS (optional but recommended):
 - Install **PostCSS Language Support** (it has a triangular logo).
