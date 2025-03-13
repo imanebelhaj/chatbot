@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 // Define proper types for our messages with attachment support
 type Attachment = {

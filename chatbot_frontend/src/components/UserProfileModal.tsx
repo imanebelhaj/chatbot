@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 //const [isDarkMode, setIsDarkMode] =  useState(false);
 
 interface UserProfile {
@@ -26,24 +26,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
     }
   }, [isOpen]);
 
-  // useEffect(() => {
-  //   const handleThemeChange = (event: Event) => {
-  //     const savedTheme = localStorage.getItem("theme");
-  //     const customEvent = event as CustomEvent;
-  //     if (customEvent.detail && customEvent.detail.isDarkMode !== undefined) {
-  //       setIsDarkMode(customEvent.detail.isDarkMode);
-  //     }
-  //   };
-  //   // Check saved theme preference
-  //   const savedTheme = localStorage.getItem("theme");
-  //   setIsDarkMode(savedTheme === "dark");
-    
-  //   document.addEventListener('themeChange', handleThemeChange);
-    
-  //   return () => {
-  //     document.removeEventListener('themeChange', handleThemeChange);
-  //   };
-  // }, []);
+ 
 
   const fetchUserProfile = async () => {
     setLoading(true);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, User, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import UserProfileModal from "@/components/UserProfileModal";
-import { useTheme } from "@/context/ThemeContext"; // Import from wherever you place the ThemeContext file
+import { useTheme } from "@/context/ThemeContext"; 
 
 export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -20,7 +20,6 @@ export default function Navbar() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
-  
   
   return (
     <>
