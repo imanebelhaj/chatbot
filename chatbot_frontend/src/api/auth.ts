@@ -1,6 +1,6 @@
 import { api } from '@/context/AuthContext';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export const loginUser = async (username: string, password: string) => {
   try {
